@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>NextStep - Cadastro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #0f172a;
+            background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%);
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        main {
+            width: min(420px, 100%);
+            background: #fff;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 35px 90px rgba(15, 23, 42, 0.15);
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+        p {
+            margin-top: 0;
+            color: #475569;
+            font-size: 0.95rem;
+        }
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            border: 1px solid #cbd5f5;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            transition: border 0.2s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        button {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 0.95rem;
+            background: #4f46e5;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 30px rgba(79, 70, 229, 0.25);
+        }
+        button:disabled {
+            background: #c7d2fe;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .status {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .status.ok {
+            color: #15803d;
+        }
+        .status.error {
+            color: #b91c1c;
+        }
+        .note {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .row {
+            display: flex;
+            gap: 1rem;
+        }
+        .row > div {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Comece agora</h1>
+    <p>Crie sua conta NextStep, confirme seu perfil e siga para o upload do currículo.</p>
+
+    <label for="backendUrl">Backend API</label>
+    <input id="backendUrl" type="url" value="http://localhost:8080" />
+
+    <label for="fullName">Nome completo</label>
+    <input id="fullName" type="text" placeholder="Carla Almeida" />
+
+    <label for="currentJob">Profissão atual</label>
+    <input id="currentJob" type="text" placeholder="Desenvolvedora Frontend" />
+
+    <div class="row">
+        <div>
+            <label for="email">E-mail</label>
+            <input id="email" type="email" placeholder="voce@exemplo.com" />
+        </div>
+        <div>
+            <label for="password">Senha</label>
+            <input id="password" type="password" placeholder="********" />
+        </div>
+    </div>
+
+    <button id="signupBtn">Criar conta</button>
+    <div id="status" class="status"></div>
+    <p class="note">Já possui conta? Entre e faça upload do currículo.</p>
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import {
+        getAuth,
+        createUserWithEmailAndPassword,
+        signOut
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const elements = {
+        backendUrl: document.getElementById("backendUrl"),
+        fullName: document.getElementById("fullName"),
+        currentJob: document.getElementById("currentJob"),
+        email: document.getElementById("email"),
+        password: document.getElementById("password"),
+        signupBtn: document.getElementById("signupBtn"),
+        status: document.getElementById("status")
+    };
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyArB7QzR90Vyf97V2-3MZ_Aog3uy5ToA5I",
+        authDomain: "challenge-mottu-trackyard.firebaseapp.com",
+        projectId: "challenge-mottu-trackyard",
+        storageBucket: "challenge-mottu-trackyard.firebasestorage.app",
+        messagingSenderId: "718156035181",
+        appId: "1:718156035181:web:86c30151ba11afbe83bb64"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const setStatus = (message, type) => {
+        elements.status.textContent = message;
+        elements.status.classList.remove("ok", "error");
+        if (type) {
+            elements.status.classList.add(type);
+        }
+    };
+
+    elements.signupBtn.addEventListener("click", handleSignup);
+
+    async function handleSignup() {
+        const { backendUrl, fullName, currentJob, email, password } = elements;
+        if (!fullName.value || !currentJob.value || !email.value || !password.value) {
+            setStatus("Preencha todos os campos para continuar.", "error");
+            return;
+        }
+        elements.signupBtn.disabled = true;
+        setStatus("Criando conta...", "ok");
+        try {
+            const credential = await createUserWithEmailAndPassword(auth, email.value, password.value);
+            const token = await credential.user.getIdToken();
+            const response = await fetch(`${backendUrl.value.replace(/\/$/, "")}/api/auth/complete-profile`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: fullName.value,
+                    currentJob: currentJob.value
+                })
+            });
+            if (!response.ok) {
+                const detail = await response.json().catch(() => ({}));
+                throw new Error(detail.message || "Falha ao salvar perfil");
+            }
+            setStatus("Conta criada! Redirecionando para login...", "ok");
+            await signOut(auth);
+            setTimeout(() => {
+                window.location.href = "/firebase-test.html";
+            }, 1500);
+        } catch (error) {
+            console.error(error);
+            setStatus(`Erro no cadastro: ${error.message}`, "error");
+        } finally {
+            elements.signupBtn.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>

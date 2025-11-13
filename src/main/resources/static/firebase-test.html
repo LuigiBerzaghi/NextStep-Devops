@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>NextStep - Teste Firebase Auth</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #0f172a;
+            background: #f8fafc;
+        }
+        body {
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            background: #f8fafc;
+        }
+        main {
+            width: min(960px, 100%);
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 25px 80px rgba(15, 23, 42, 0.1);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 2rem;
+        }
+        section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+        section h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        input, textarea, button {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border: 1px solid #cbd5f5;
+            font-size: 1rem;
+        }
+        textarea {
+            min-height: 140px;
+            font-family: "Fira Code", Consolas, monospace;
+        }
+        button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .status {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .status.ok {
+            color: #16a34a;
+        }
+        .status.error {
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>NextStep  -  Testador Firebase Auth</h1>
+    <p>Use esta tela simples para logar via Firebase Authentication, extrair o JWT e testa-lo no backend Java
+        (<code>/api/auth/verify</code>).</p>
+
+    <section>
+        <div class="badge">Passo 1  -  Configuracao automatica</div>
+        <p>As credenciais do projeto <strong>nextstep-a5f87</strong> ja estao embutidas nesta pagina. Ajuste apenas a URL do backend, se necessario.</p>
+        <label for="backendUrl">URL do backend (padrao: <code>http://localhost:8080</code>)</label>
+        <input id="backendUrl" type="url" value="http://localhost:8080" />
+        <div id="configStatus" class="status">Inicializando Firebase...</div>
+    </section>
+
+    <section>
+        <div class="badge">Passo 2  -  Login</div>
+        <div class="row">
+            <div>
+                <label for="email">Email</label>
+                <input id="email" type="email" placeholder="seu-email@exemplo.com" />
+            </div>
+            <div>
+                <label for="password">Senha</label>
+                <input id="password" type="password" placeholder="********" />
+            </div>
+        </div>
+        <div class="row">
+            <button id="loginBtn" disabled>Login com Firebase</button>
+            <button id="logoutBtn" disabled>Sair</button>
+        </div>
+        <div id="loginStatus" class="status"></div>
+    </section>
+
+    <section>
+        <div class="badge">Passo 3  -  Chamar Backend</div>
+        <button id="callBackendBtn" disabled>Enviar token para /api/auth/verify</button>
+        <div id="backendStatus" class="status"></div>
+        <h3>Token JWT</h3>
+        <pre id="tokenPreview">Faca login para visualizar o token...</pre>
+        <h3>Resposta do backend</h3>
+        <pre id="backendResponse">Ainda nao houve chamada.</pre>
+    </section>
+</main>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import {
+        getAuth,
+        signInWithEmailAndPassword,
+        signOut,
+        onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const elements = {
+        backendUrl: document.getElementById("backendUrl"),
+        configStatus: document.getElementById("configStatus"),
+        email: document.getElementById("email"),
+        password: document.getElementById("password"),
+        loginBtn: document.getElementById("loginBtn"),
+        logoutBtn: document.getElementById("logoutBtn"),
+        loginStatus: document.getElementById("loginStatus"),
+        callBackendBtn: document.getElementById("callBackendBtn"),
+        backendStatus: document.getElementById("backendStatus"),
+        tokenPreview: document.getElementById("tokenPreview"),
+        backendResponse: document.getElementById("backendResponse")
+    };
+
+    const defaultFirebaseConfig = {
+        apiKey: "AIzaSyArB7QzR90Vyf97V2-3MZ_Aog3uy5ToA5I",
+        authDomain: "challenge-mottu-trackyard.firebaseapp.com",
+        projectId: "challenge-mottu-trackyard",
+        storageBucket: "challenge-mottu-trackyard.firebasestorage.app",
+        messagingSenderId: "718156035181",
+        appId: "1:718156035181:web:86c30151ba11afbe83bb64"
+    };
+
+    let firebaseApp = null;
+    let auth = null;
+    let lastToken = null;
+
+    const setStatus = (el, message, type = "ok") => {
+        el.classList.remove("ok", "error");
+        el.classList.add(type);
+        el.textContent = message;
+    };
+
+    function initFirebase() {
+        try {
+            firebaseApp = initializeApp(defaultFirebaseConfig);
+            auth = getAuth(firebaseApp);
+            elements.loginBtn.disabled = false;
+            setStatus(elements.configStatus, "Firebase inicializado com sucesso.", "ok");
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    setStatus(elements.loginStatus, `Usuario logado: ${user.email}`, "ok");
+                    elements.logoutBtn.disabled = false;
+                    elements.callBackendBtn.disabled = false;
+                    user.getIdToken().then(displayToken);
+                } else {
+                    setStatus(elements.loginStatus, "Nenhum usuario logado.", "error");
+                    elements.logoutBtn.disabled = true;
+                    elements.callBackendBtn.disabled = true;
+                    elements.tokenPreview.textContent = "Faca login para visualizar o token...";
+                    lastToken = null;
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            setStatus(elements.configStatus, "Falha ao inicializar Firebase. Verifique o console.", "error");
+        }
+    }
+
+    initFirebase();
+
+    elements.loginBtn.addEventListener("click", async () => {
+        if (!auth) {
+            setStatus(elements.loginStatus, "Inicializacao pendente.", "error");
+            return;
+        }
+        try {
+            const { email, password } = elements;
+            const credential = await signInWithEmailAndPassword(auth, email.value, password.value);
+            setStatus(elements.loginStatus, `Login OK: ${credential.user.email}`, "ok");
+            const token = await credential.user.getIdToken();
+            displayToken(token);
+        } catch (error) {
+            console.error(error);
+            setStatus(elements.loginStatus, `Erro ao logar: ${error.message}`, "error");
+        }
+    });
+
+    elements.logoutBtn.addEventListener("click", async () => {
+        if (!auth) {
+            setStatus(elements.loginStatus, "Firebase nao inicializado.", "error");
+            return;
+        }
+        await signOut(auth);
+        elements.backendResponse.textContent = "Ainda nao houve chamada.";
+        setStatus(elements.loginStatus, "Logout realizado.", "ok");
+    });
+
+    elements.callBackendBtn.addEventListener("click", async () => {
+        if (!lastToken) {
+            setStatus(elements.backendStatus, "Nenhum token disponivel. Faca login primeiro.", "error");
+            return;
+        }
+        const baseUrl = elements.backendUrl.value.replace(/\/$/, "");
+        try {
+            const response = await fetch(`${baseUrl}/api/auth/verify`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${lastToken}`
+                }
+            });
+            const payload = await response.json();
+            if (response.ok) {
+                elements.backendResponse.textContent = JSON.stringify(payload, null, 2);
+                setStatus(elements.backendStatus, "Backend respondeu com sucesso!", "ok");
+            } else {
+                elements.backendResponse.textContent = JSON.stringify(payload, null, 2);
+                setStatus(elements.backendStatus, `Erro ${response.status}: consulte a resposta.`, "error");
+            }
+        } catch (error) {
+            console.error(error);
+            setStatus(elements.backendStatus, "Falha ao chamar o backend. Veja o console.", "error");
+        }
+    });
+
+    function displayToken(token) {
+        lastToken = token;
+        elements.tokenPreview.textContent = token;
+    }
+</script>
+</body>
+</html>

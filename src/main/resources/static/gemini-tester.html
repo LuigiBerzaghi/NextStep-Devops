@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>NextStep - Gemini Tester</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f172a;
+            color: #0f172a;
+        }
+        body {
+            margin: 0;
+            padding: 2rem;
+            background: #e2e8f0;
+        }
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        section {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+        }
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-top: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+        input, textarea, button {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.75rem;
+            border-radius: 10px;
+            border: 1px solid #cbd5f5;
+            font-size: 0.95rem;
+        }
+        textarea {
+            min-height: 100px;
+        }
+        button {
+            margin-top: 1rem;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4);
+        }
+        pre {
+            background: #0f172a;
+            color: #e0f2fe;
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+        .status {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .status.ok { color: #16a34a; }
+        .status.error { color: #dc2626; }
+        .chat-box {
+            min-height: 120px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            background: #f8fafc;
+            white-space: pre-line;
+            font-size: 0.95rem;
+        }
+        .stacked {
+            grid-column: 1 / -1;
+        }
+        small {
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+<h1>NextStep - Painel de testes Gemini</h1>
+<section class="stacked">
+    <h2>Configuracoes</h2>
+    <label for="backendUrl">Backend URL</label>
+    <input id="backendUrl" type="url" value="http://localhost:8080" />
+    <label for="token">Firebase JWT</label>
+    <textarea id="token" placeholder="Cole aqui o token gerado no firebase-test.html"></textarea>
+    <div id="configStatus" class="status"></div>
+</section>
+<main>
+    <section>
+        <h2>1. Upload de curriculo</h2>
+        <label for="resumeFile">Arquivo (PDF, DOC ou DOCX)</label>
+        <input id="resumeFile" type="file" accept=".pdf,.doc,.docx" />
+        <button id="uploadResumeBtn">Enviar para /api/resume/upload</button>
+        <div id="resumeStatus" class="status"></div>
+        <pre id="resumeResponse">Sem resposta ainda.</pre>
+    </section>
+    <section>
+        <h2>2. Gerar jornada</h2>
+        <label for="desiredJob">Cargo desejado</label>
+        <input id="desiredJob" type="text" placeholder="Full Stack Developer" />
+        <label for="skills">Habilidades atuais (separadas por virgula)</label>
+        <input id="skills" type="text" placeholder="Java, Spring, React" />
+        <label for="gaps">Lacunas (separadas por virgula)</label>
+        <input id="gaps" type="text" placeholder="Cloud, Testes" />
+        <button id="generateJourneyBtn">Enviar para /api/journeys/generate</button>
+        <div id="journeyStatus" class="status"></div>
+        <pre id="journeyResponse">Sem resposta ainda.</pre>
+    </section>
+    <section>
+        <h2>3. Chat Mentor AI</h2>
+        <label for="conversationId">Conversation ID</label>
+        <input id="conversationId" type="text" value="conv-teste" />
+        <label for="chatMessage">Mensagem</label>
+        <textarea id="chatMessage" placeholder="O que devo estudar agora?"></textarea>
+        <button id="sendChatBtn">POST /api/chat/send</button>
+        <div id="chatStatus" class="status"></div>
+        <div id="chatResponse" class="chat-box">Sem resposta ainda.</div>
+        <button id="loadChatHistoryBtn">GET /api/chat/history</button>
+        <div id="chatHistoryResponse" class="chat-box">Sem historico carregado.</div>
+    </section>
+    <section>
+        <h2>4. Consultar dados</h2>
+        <button id="getJourneyBtn">GET /api/journeys/active</button>
+        <pre id="activeJourney">Sem dados.</pre>
+        <label for="userId">User ID (para GET /api/resume/analysis/{userId})</label>
+        <input id="userId" type="text" placeholder="uuid-123" />
+        <button id="getResumeBtn">GET /api/resume/analysis/{userId}</button>
+        <pre id="analysisResponse">Sem dados.</pre>
+    </section>
+</main>
+
+<script>
+    const $ = (id) => document.getElementById(id);
+    const inputs = {
+        backendUrl: $("backendUrl"),
+        token: $("token"),
+        resumeFile: $("resumeFile"),
+        desiredJob: $("desiredJob"),
+        skills: $("skills"),
+        gaps: $("gaps"),
+        conversationId: $("conversationId"),
+        chatMessage: $("chatMessage"),
+        userId: $("userId")
+    };
+    const outputs = {
+        configStatus: $("configStatus"),
+        resumeStatus: $("resumeStatus"),
+        resumeResponse: $("resumeResponse"),
+        journeyStatus: $("journeyStatus"),
+        journeyResponse: $("journeyResponse"),
+        chatStatus: $("chatStatus"),
+        chatResponse: $("chatResponse"),
+        chatHistoryResponse: $("chatHistoryResponse"),
+        activeJourney: $("activeJourney"),
+        analysisResponse: $("analysisResponse")
+    };
+
+    const buttons = {
+        uploadResumeBtn: $("uploadResumeBtn"),
+        generateJourneyBtn: $("generateJourneyBtn"),
+        sendChatBtn: $("sendChatBtn"),
+        loadChatHistoryBtn: $("loadChatHistoryBtn"),
+        getJourneyBtn: $("getJourneyBtn"),
+        getResumeBtn: $("getResumeBtn")
+    };
+
+    const setStatus = (el, message, type) => {
+        el.textContent = message;
+        el.classList.remove("ok", "error");
+        if (type) el.classList.add(type);
+    };
+
+    const getAuthHeaders = () => {
+        const token = inputs.token.value.trim();
+        if (!token) {
+            setStatus(outputs.configStatus, "Cole o Firebase JWT.", "error");
+            throw new Error("Token ausente");
+        }
+        return {
+            Authorization: `Bearer ${token}`
+        };
+    };
+
+    buttons.uploadResumeBtn.addEventListener("click", async () => {
+        try {
+            const file = inputs.resumeFile.files[0];
+            if (!file) {
+                setStatus(outputs.resumeStatus, "Selecione um arquivo.", "error");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetchJson("/api/resume/upload", {
+                method: "POST",
+                body: formData,
+                headers: getAuthHeaders(),
+                raw: true
+            });
+            outputs.resumeResponse.textContent = response.pretty;
+            setStatus(outputs.resumeStatus, "Analise enviada!", "ok");
+        } catch (error) {
+            handleError(error, outputs.resumeStatus, outputs.resumeResponse);
+        }
+    });
+
+    buttons.generateJourneyBtn.addEventListener("click", async () => {
+        try {
+            const body = {
+                desiredJob: inputs.desiredJob.value || "Full Stack Developer",
+                currentSkills: splitValues(inputs.skills.value, ["Java", "Spring"]),
+                gaps: splitValues(inputs.gaps.value, ["Cloud", "Testes"])
+            };
+            const response = await fetchJson("/api/journeys/generate", {
+                method: "POST",
+                headers: {
+                    ...getAuthHeaders(),
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+            outputs.journeyResponse.textContent = response.pretty;
+            setStatus(outputs.journeyStatus, "Jornada criada!", "ok");
+        } catch (error) {
+            handleError(error, outputs.journeyStatus, outputs.journeyResponse);
+        }
+    });
+
+    buttons.sendChatBtn.addEventListener("click", async () => {
+        try {
+            const body = {
+                conversationId: inputs.conversationId.value || "conv-demo",
+                message: inputs.chatMessage.value || "Quais passos devo seguir?"
+            };
+            const response = await fetchJson("/api/chat/send", {
+                method: "POST",
+                headers: {
+                    ...getAuthHeaders(),
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+            const messageText = response.json?.message ?? "Sem resposta.";
+            outputs.chatResponse.innerHTML = formatMessage("ai", messageText);
+            setStatus(outputs.chatStatus, "Mensagem enviada!", "ok");
+        } catch (error) {
+            handleError(error, outputs.chatStatus, outputs.chatResponse);
+        }
+    });
+
+    buttons.loadChatHistoryBtn.addEventListener("click", async () => {
+        try {
+            const cid = inputs.conversationId.value || "conv-demo";
+            const response = await fetchJson(`/api/chat/history?conversationId=${encodeURIComponent(cid)}&limit=50`, {
+                headers: getAuthHeaders()
+            });
+            const messages = response.json?.messages ?? [];
+            outputs.chatHistoryResponse.innerHTML = messages.length
+                    ? messages.map((msg) => formatMessage(msg.role, msg.message)).join("<hr/>")
+                    : "Sem historico carregado.";
+        } catch (error) {
+            handleError(error, outputs.chatStatus, outputs.chatHistoryResponse);
+        }
+    });
+
+    buttons.getJourneyBtn.addEventListener("click", async () => {
+        try {
+            const response = await fetchJson("/api/journeys/active", {
+                headers: getAuthHeaders()
+            });
+            outputs.activeJourney.textContent = response.pretty;
+        } catch (error) {
+            handleError(error, outputs.journeyStatus, outputs.activeJourney);
+        }
+    });
+
+    buttons.getResumeBtn.addEventListener("click", async () => {
+        try {
+            const userId = inputs.userId.value.trim();
+            if (!userId) {
+                setStatus(outputs.resumeStatus, "Informe o userId.", "error");
+                return;
+            }
+            const response = await fetchJson(`/api/resume/analysis/${encodeURIComponent(userId)}`, {
+                headers: getAuthHeaders()
+            });
+            outputs.analysisResponse.textContent = response.pretty;
+        } catch (error) {
+            handleError(error, outputs.resumeStatus, outputs.analysisResponse);
+        }
+    });
+
+    async function fetchJson(path, options = {}) {
+        const baseUrl = inputs.backendUrl.value.replace(/\/$/, "");
+        const url = path.startsWith("http") ? path : `${baseUrl}${path}`;
+        const requestOptions = { ...options };
+        if (!requestOptions.headers) {
+            requestOptions.headers = {};
+        }
+        if (!options.raw && !(requestOptions.headers instanceof Headers)) {
+            requestOptions.headers = new Headers(requestOptions.headers);
+        }
+        const response = await fetch(url, requestOptions);
+        const text = await response.text();
+        let json;
+        try {
+            json = JSON.parse(text);
+        } catch (_) {
+            json = text || "(sem corpo)";
+        }
+        if (!response.ok) {
+            const error = new Error("Request failed");
+            error.payload = json;
+            error.status = response.status;
+            throw error;
+        }
+        return { json, pretty: typeof json === "string" ? json : JSON.stringify(json, null, 2) };
+    }
+
+    function splitValues(value, fallback) {
+        if (!value) return fallback;
+        return value.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+
+    function handleError(error, statusEl, outputEl) {
+        console.error(error);
+        const message = error.payload?.message || error.message || "Erro inesperado";
+        setStatus(statusEl, message, "error");
+        const pretty = typeof error.payload === "string" ? error.payload : JSON.stringify(error.payload || {}, null, 2);
+        if (outputEl.classList && outputEl.classList.contains("chat-box")) {
+            outputEl.innerHTML = formatMessage("ai", pretty);
+        } else {
+            outputEl.textContent = pretty;
+        }
+    }
+
+    function formatMessage(role, rawText) {
+        const sender = role && role.toLowerCase() === "ai" ? "Mentor AI" : "Você";
+        const text = (rawText || "").replace(/\r\n|\r|\n/g, "<br/>");
+        return `<p style="margin:0;"><strong>${sender}:</strong></p><p style="margin:0.4rem 0 0;">${text}</p>`;
+    }
+
+    setStatus(outputs.configStatus, "Cole o token e use os botoes para testar.", "ok");
+</script>
+</body>
+</html>
