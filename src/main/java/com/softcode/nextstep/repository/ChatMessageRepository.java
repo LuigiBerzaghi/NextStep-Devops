@@ -2,15 +2,14 @@ package com.softcode.nextstep.repository;
 
 import com.softcode.nextstep.domain.chat.ChatMessage;
 import com.softcode.nextstep.domain.user.User;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> {
 
-    List<ChatMessage> findTop50ByUserAndConversationIdOrderByTimestampDesc(User user, String conversationId);
-
-    List<ChatMessage> findByUserAndConversationIdOrderByTimestampAsc(User user, String conversationId);
+    Page<ChatMessage> findByUserAndConversationId(User user, String conversationId, Pageable pageable);
 
     void deleteByUser(User user);
 }

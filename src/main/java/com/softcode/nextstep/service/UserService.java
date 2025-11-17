@@ -41,16 +41,16 @@ public class UserService {
     public User findByFirebaseUidOrThrow(String firebaseUid) {
         return userRepository
                 .findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new NotFoundException("Usuario nao encontrado"));
+                .orElseThrow(() -> new NotFoundException("error.user.not_found"));
     }
 
     @Transactional
     public User updateProfile(User user, String name, String currentJob, String email) {
         if (!StringUtils.hasText(name) || !StringUtils.hasText(currentJob) || !StringUtils.hasText(email)) {
-            throw new BadRequestException("Nome, email e cargo atual sao obrigatorios");
+            throw new BadRequestException("error.user.profile_required");
         }
         if (!email.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(email.toLowerCase(Locale.ROOT))) {
-            throw new BadRequestException("Email ja esta em uso");
+            throw new BadRequestException("error.user.email_in_use");
         }
         user.setName(name);
         user.setCurrentJob(currentJob);

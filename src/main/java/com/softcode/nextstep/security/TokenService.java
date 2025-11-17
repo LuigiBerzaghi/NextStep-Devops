@@ -18,7 +18,7 @@ public class TokenService {
 
     public String sanitizeAuthorizationHeader(String authorizationHeader) {
         if (!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Authorization header ausente ou invalido");
+            throw new UnauthorizedException("error.auth.authorization_header_missing");
         }
         return authorizationHeader.substring("Bearer ".length()).trim();
     }
@@ -39,7 +39,7 @@ public class TokenService {
             }
             return new DecodedToken(uid, email.toLowerCase(Locale.ROOT));
         } catch (Exception ex) {
-            throw new UnauthorizedException("Token invalido");
+            throw new UnauthorizedException("error.auth.invalid_token");
         }
     }
 

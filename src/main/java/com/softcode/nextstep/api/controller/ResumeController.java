@@ -31,7 +31,7 @@ public class ResumeController {
     @GetMapping("/analysis/{userId}")
     public ResponseEntity<ResumeAnalysisResponse> findLatest(@PathVariable UUID userId) {
         if (!authenticatedUserContext.getCurrentUser().getId().equals(userId)) {
-            throw new UnauthorizedException("Voce so pode acessar seus proprios relatorios");
+            throw new UnauthorizedException("error.resume.forbidden_report");
         }
         return ResponseEntity.ok(resumeService.getLatestAnalysis());
     }

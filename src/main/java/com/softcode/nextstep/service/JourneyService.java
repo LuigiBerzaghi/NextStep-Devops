@@ -17,6 +17,7 @@ import com.softcode.nextstep.domain.journey.JourneyStepStatus;
 import com.softcode.nextstep.domain.user.User;
 import com.softcode.nextstep.exception.BadRequestException;
 import com.softcode.nextstep.exception.NotFoundException;
+import com.softcode.nextstep.messaging.NotificationProducer;
 import com.softcode.nextstep.repository.JourneyRepository;
 import com.softcode.nextstep.repository.JourneyStepRepository;
 import com.softcode.nextstep.security.AuthenticatedUserContext;
@@ -30,6 +31,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -43,8 +48,10 @@ public class JourneyService {
     private final GeminiService geminiService;
     private final AuthenticatedUserContext authenticatedUserContext;
     private final ObjectMapper objectMapper;
+    private final NotificationProducer notificationProducer;
 
     @Transactional
+    @CacheEvict(cacheNames = "dashboard", key = "@authenticatedUserContext.getCurrentUser().getId()")
     public JourneyResponse generateJourney(JourneyGenerationRequest request) {
         User user = authenticatedUserContext.getCurrentUser();
         JourneyPlan plan = geminiService.generateJourneyPlan(user, request);
@@ -56,7 +63,9 @@ public class JourneyService {
         journey.setOverallProgress(0);
         journey.setInsightsJson(writeJson(plan.insights()));
         plan.steps().forEach(stepPlan -> journey.getSteps().add(toEntity(journey, stepPlan)));
-        return mapToResponse(journeyRepository.save(journey));
+        Journey saved = journeyRepository.save(journey);
+        notificationProducer.notifyJourneyGenerated(user.getId(), saved.getId(), saved.getDesiredJob());
+        return mapToResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -64,15 +73,20 @@ public class JourneyService {
         User user = authenticatedUserContext.getCurrentUser();
         Journey journey = journeyRepository
                 .findTopByUserAndStatusOrderByCreatedAtDesc(user, JourneyStatus.ACTIVE)
-                .orElseThrow(() -> new NotFoundException("Nenhuma jornada ativa encontrada"));
+                .orElseThrow(() -> new NotFoundException("error.journey.active_not_found"));
         return mapToResponse(journey);
     }
 
     @Transactional(readOnly = true)
-    public JourneyHistoryResponse getHistory() {
+    public JourneyHistoryResponse getHistory(int page, int size) {
         User user = authenticatedUserContext.getCurrentUser();
-        List<JourneyHistoryItemResponse> items = journeyRepository.findByUserAndStatus(user, JourneyStatus.COMPLETED).stream()
-                .sorted(Comparator.comparing(Journey::getCompletedAt).reversed())
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        Page<Journey> pageResult = journeyRepository.findByUserAndStatus(
+                user,
+                JourneyStatus.COMPLETED,
+                PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "completedAt")));
+        List<JourneyHistoryItemResponse> items = pageResult.getContent().stream()
                 .map(journey -> new JourneyHistoryItemResponse(
                         journey.getId(),
                         journey.getDesiredJob(),
@@ -80,18 +94,20 @@ public class JourneyService {
                         journey.getOverallProgress(),
                         journey.getSteps().size()))
                 .collect(Collectors.toList());
-        return new JourneyHistoryResponse(items);
+        return new JourneyHistoryResponse(
+                items, pageResult.getNumber(), pageResult.getSize(), pageResult.getTotalElements(), pageResult.getTotalPages());
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "dashboard", key = "@authenticatedUserContext.getCurrentUser().getId()")
     public JourneyStepResponse updateStep(UUID stepId, JourneyProgressUpdateRequest request) {
         User user = authenticatedUserContext.getCurrentUser();
         JourneyStep step = journeyStepRepository
                 .findByIdAndUser(stepId, user)
-                .orElseThrow(() -> new NotFoundException("Etapa nao encontrada"));
+                .orElseThrow(() -> new NotFoundException("error.journey.step_not_found"));
         Journey journey = step.getJourney();
         if (journey.getStatus() != JourneyStatus.ACTIVE) {
-            throw new BadRequestException("Nao e possivel alterar etapas de uma jornada encerrada");
+            throw new BadRequestException("error.journey.cannot_update_completed");
         }
         step.setProgress(request.progress());
         step.setStatus(resolveStatus(request.progress()));

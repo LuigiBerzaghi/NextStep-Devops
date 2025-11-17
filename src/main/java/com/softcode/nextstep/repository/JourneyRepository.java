@@ -6,6 +6,8 @@ import com.softcode.nextstep.domain.user.User;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface JourneyRepository extends JpaRepository<Journey, UUID> {
@@ -13,6 +15,8 @@ public interface JourneyRepository extends JpaRepository<Journey, UUID> {
     Optional<Journey> findTopByUserAndStatusOrderByCreatedAtDesc(User user, JourneyStatus status);
 
     List<Journey> findByUserAndStatus(User user, JourneyStatus status);
+
+    Page<Journey> findByUserAndStatus(User user, JourneyStatus status, Pageable pageable);
 
     List<Journey> findByUser(User user);
 

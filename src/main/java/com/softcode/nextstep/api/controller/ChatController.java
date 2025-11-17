@@ -28,8 +28,9 @@ public class ChatController {
 
     @GetMapping("/history")
     public ResponseEntity<ChatHistoryResponse> history(
-            @RequestParam String conversationId, @RequestParam(defaultValue = "50") int limit) {
-        return ResponseEntity.ok(chatService.history(conversationId, limit));
+            @RequestParam String conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(chatService.history(conversationId, page, size));
     }
 }
-

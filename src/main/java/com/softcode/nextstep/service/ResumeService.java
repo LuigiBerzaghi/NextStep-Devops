@@ -11,6 +11,7 @@ import com.softcode.nextstep.domain.resume.ResumeAnalysis;
 import com.softcode.nextstep.domain.user.User;
 import com.softcode.nextstep.exception.BadRequestException;
 import com.softcode.nextstep.exception.NotFoundException;
+import com.softcode.nextstep.messaging.NotificationProducer;
 import com.softcode.nextstep.repository.ResumeAnalysisRepository;
 import com.softcode.nextstep.security.AuthenticatedUserContext;
 import com.softcode.nextstep.service.ai.GeminiService;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -35,8 +37,10 @@ public class ResumeService {
     private final GeminiService geminiService;
     private final AuthenticatedUserContext authenticatedUserContext;
     private final ObjectMapper objectMapper;
+    private final NotificationProducer notificationProducer;
 
     @Transactional
+    @CacheEvict(cacheNames = "dashboard", key = "@authenticatedUserContext.getCurrentUser().getId()")
     public ResumeAnalysisResponse uploadAndAnalyze(MultipartFile file) {
         User user = authenticatedUserContext.getCurrentUser();
         validateFile(file);
@@ -44,7 +48,7 @@ public class ResumeService {
         try {
             summary = geminiService.analyzeResume(user, file.getOriginalFilename(), file.getBytes());
         } catch (IOException e) {
-            throw new BadRequestException("Nao foi possivel ler o arquivo enviado");
+            throw new BadRequestException("error.resume.file_read_failed");
         }
         ResumeAnalysis analysis = new ResumeAnalysis();
         analysis.setUser(user);
@@ -54,6 +58,7 @@ public class ResumeService {
         analysis.setYearsOfExperience(summary.yearsOfExperience());
         analysis.setAnalyzedAt(LocalDateTime.now());
         resumeAnalysisRepository.save(analysis);
+        notificationProducer.notifyResumeAnalyzed(user.getId(), analysis.getId());
         return mapToResponse(analysis);
     }
 
@@ -61,28 +66,28 @@ public class ResumeService {
         User user = authenticatedUserContext.getCurrentUser();
         ResumeAnalysis analysis = resumeAnalysisRepository
                 .findTopByUserOrderByAnalyzedAtDesc(user)
-                .orElseThrow(() -> new NotFoundException("Nenhuma analise encontrada para este usuario"));
+                .orElseThrow(() -> new NotFoundException("error.resume.analysis_not_found"));
         return mapToResponse(analysis);
     }
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new BadRequestException("Arquivo do curriculo e obrigatorio");
+            throw new BadRequestException("error.resume.file_required");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BadRequestException("Arquivo excede o limite maximo de 5MB");
+            throw new BadRequestException("error.resume.file_too_large");
         }
         String filename = file.getOriginalFilename();
         if (!StringUtils.hasText(filename)) {
-            throw new BadRequestException("Nome de arquivo invalido");
+            throw new BadRequestException("error.resume.invalid_filename");
         }
         int dotIndex = filename.lastIndexOf('.');
         if (dotIndex == -1) {
-            throw new BadRequestException("Formato invalido. Envie PDF, DOC ou DOCX");
+            throw new BadRequestException("error.resume.invalid_format");
         }
         String extension = filename.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
         if (!SUPPORTED_EXTENSIONS.contains(extension)) {
-            throw new BadRequestException("Formato invalido. Envie PDF, DOC ou DOCX");
+            throw new BadRequestException("error.resume.invalid_format");
         }
     }
 

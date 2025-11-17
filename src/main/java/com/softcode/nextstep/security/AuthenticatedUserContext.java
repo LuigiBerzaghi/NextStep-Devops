@@ -16,13 +16,13 @@ public class AuthenticatedUserContext {
     public User getCurrentUser() {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         if (!(attrs instanceof ServletRequestAttributes servletAttributes)) {
-            throw new UnauthorizedException("Usuario nao autenticado");
+            throw new UnauthorizedException("error.auth.unauthenticated");
         }
         HttpServletRequest request = servletAttributes.getRequest();
         Object candidate = request.getAttribute(ATTRIBUTE);
         if (candidate instanceof User user) {
             return user;
         }
-        throw new UnauthorizedException("Usuario nao autenticado");
+        throw new UnauthorizedException("error.auth.unauthenticated");
     }
 }

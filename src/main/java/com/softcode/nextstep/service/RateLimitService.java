@@ -21,7 +21,7 @@ public class RateLimitService {
                         return new UsageWindow(now, 1);
                     }
                     if (current.count() >= limit) {
-                        throw new RateLimitException("Limite de requisicoes excedido. Tente novamente em instantes.");
+                        throw new RateLimitException("error.rate.limit_exceeded");
                     }
                     return current.incremented();
                 });

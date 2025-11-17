@@ -4,8 +4,7 @@ import org.springframework.http.HttpStatus;
 
 public class UnauthorizedException extends ApiException {
 
-    public UnauthorizedException(String message) {
-        super(message, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED");
+    public UnauthorizedException(String messageKey, Object... messageArgs) {
+        super(messageKey, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", null, messageArgs);
     }
 }
-

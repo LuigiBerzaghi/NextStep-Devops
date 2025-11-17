@@ -16,11 +16,12 @@ import com.softcode.nextstep.domain.user.User;
 import com.softcode.nextstep.repository.JourneyRepository;
 import com.softcode.nextstep.repository.ResumeAnalysisRepository;
 import com.softcode.nextstep.security.AuthenticatedUserContext;
-import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +33,7 @@ public class DashboardService {
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "dashboard", key = "@authenticatedUserContext.getCurrentUser().getId()")
     public DashboardResponse getDashboard() {
         User user = authenticatedUserContext.getCurrentUser();
         Optional<Journey> journeyOpt = journeyRepository.findTopByUserAndStatusOrderByCreatedAtDesc(user, JourneyStatus.ACTIVE);

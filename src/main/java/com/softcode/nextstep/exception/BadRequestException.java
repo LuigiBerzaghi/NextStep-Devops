@@ -5,12 +5,11 @@ import org.springframework.http.HttpStatus;
 
 public class BadRequestException extends ApiException {
 
-    public BadRequestException(String message) {
-        super(message, HttpStatus.BAD_REQUEST, "BAD_REQUEST");
+    public BadRequestException(String messageKey, Object... messageArgs) {
+        super(messageKey, HttpStatus.BAD_REQUEST, "BAD_REQUEST", null, messageArgs);
     }
 
-    public BadRequestException(String message, Map<String, ?> details) {
-        super(message, HttpStatus.BAD_REQUEST, "BAD_REQUEST", details);
+    public BadRequestException(String messageKey, Map<String, ?> details) {
+        super(messageKey, HttpStatus.BAD_REQUEST, "BAD_REQUEST", details);
     }
 }
-
