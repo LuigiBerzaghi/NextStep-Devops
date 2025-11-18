@@ -17,9 +17,10 @@ public class GeminiConfig {
         if (!StringUtils.hasText(apiKey)) {
             apiKey = System.getenv("GOOGLE_API_KEY");
         }
-        if (StringUtils.hasText(apiKey)) {
-            builder = builder.apiKey(apiKey);
+        if (!StringUtils.hasText(apiKey)) {
+            apiKey = "dummy-key";
         }
+        builder = builder.apiKey(apiKey);
         return builder.build();
     }
 }
