@@ -77,7 +77,7 @@ stages:
             displayName: 'Publicar artefato opcional (.jar)'
             condition: succeeded()
             inputs:
-              PathtoPublish: 'nextstep/target'
+              PathtoPublish: 'target'
               ArtifactName: 'java_package'
               publishLocation: 'Container'
 
