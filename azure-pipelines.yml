@@ -105,10 +105,14 @@ stages:
 
                 echo "Definindo Web App $(APP_NAME) para imagem ${IMAGE_NAME}"
 
+                ACR_LOGIN_SERVER="$(az acr show -n $(ACR_NAME) --query loginServer -o tsv)"
+                ACR_USERNAME="$(az acr credential show -n $(ACR_NAME) --query username -o tsv)"
+                ACR_PASSWORD="$(az acr credential show -n $(ACR_NAME) --query passwords[0].value -o tsv)"
+
                 az webapp config container set \
                   --resource-group "$(RG_NAME)" \
                   --name "$(APP_NAME)" \
                   --docker-custom-image-name "${IMAGE_NAME}" \
-                  --docker-registry-server-url "https://$(ACR_NAME).azurecr.io" \
-                  --docker-registry-server-user "$(ACR_USERNAME)" \
-                  --docker-registry-server-password "$(ACR_PASSWORD)"
+                  --docker-registry-server-url "https://$ACR_LOGIN_SERVER" \
+                  --docker-registry-server-user "$ACR_USERNAME" \
+                  --docker-registry-server-password "$ACR_PASSWORD"
