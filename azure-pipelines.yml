@@ -2,6 +2,7 @@
 
 trigger:
   - main
+  - acr
 
 variables:
   - group: nextstep-secrets
