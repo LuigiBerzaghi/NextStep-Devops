@@ -13,10 +13,13 @@ public class GeminiConfig {
     @Bean(destroyMethod = "close")
     Client geminiClient(GeminiProperties properties) {
         Client.Builder builder = Client.builder();
-        if (StringUtils.hasText(properties.getApiKey())) {
-            builder = builder.apiKey(properties.getApiKey());
+        String apiKey = properties.getApiKey();
+        if (!StringUtils.hasText(apiKey)) {
+            apiKey = System.getenv("GOOGLE_API_KEY");
+        }
+        if (StringUtils.hasText(apiKey)) {
+            builder = builder.apiKey(apiKey);
         }
         return builder.build();
     }
 }
-
