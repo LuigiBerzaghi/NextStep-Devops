@@ -60,6 +60,7 @@ stages:
               SPRING_DATASOURCE_USERNAME: $(SPRING_DATASOURCE_USERNAME)
               SPRING_DATASOURCE_PASSWORD: $(SPRING_DATASOURCE_PASSWORD)
               SPRING_DATASOURCE_DRIVER_CLASS_NAME: $(SPRING_DATASOURCE_DRIVER_CLASS_NAME)
+              GOOGLE_API_KEY: $(GOOGLE_API_KEY)
 
           - task: Docker@2
             displayName: 'Docker buildAndPush -> ACR (latest + commit hash)'
