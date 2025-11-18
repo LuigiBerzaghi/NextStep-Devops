@@ -21,7 +21,7 @@ variables:
   - name: SQL_ADMIN_USER
     value: 'adminuser'
   - name: dockerRegistryServiceConnection
-    value: 'acrNextstep'
+    value: 'acrnextstep'
   - name: azureSubscription
     value: 'azureNextstep'
 
