@@ -51,7 +51,7 @@ stages:
           - task: Maven@3
             displayName: 'Maven clean test package'
             inputs:
-              mavenPomFile: 'nextstep/pom.xml'
+              mavenPomFile: 'pom.xml'
               goals: 'clean test package'
               publishJUnitResults: true
               testResultsFiles: '**/surefire-reports/TEST-*.xml'
