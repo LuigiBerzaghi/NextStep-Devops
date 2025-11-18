@@ -52,11 +52,11 @@ public class Journey extends BaseEntity {
     @Column(name = "estimated_time", length = 80)
     private String estimatedTime;
 
-    @Column(name = "completed_at", columnDefinition = "TIMESTAMP(0)")
+    @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
     @Lob
-    @Column(name = "insights_json", columnDefinition = "CLOB")
+    @Column(name = "insights_json")
     private String insightsJson;
 
     @OneToMany(mappedBy = "journey", cascade = CascadeType.ALL, orphanRemoval = true)

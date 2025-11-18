@@ -67,7 +67,7 @@ stages:
               command: 'buildAndPush'
               containerRegistry: '$(dockerRegistryServiceConnection)'
               repository: 'nextstep'
-              Dockerfile: 'nextstep/Dockerfile'
+              Dockerfile: 'nextstep/dockerfiles/Dockerfile'
               buildContext: 'nextstep'
               tags: |
                 $(Build.SourceVersion)

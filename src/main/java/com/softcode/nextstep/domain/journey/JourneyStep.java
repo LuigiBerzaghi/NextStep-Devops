@@ -46,7 +46,7 @@ public class JourneyStep extends BaseEntity {
     private String resources;
 
     @Lob
-    @Column(name = "platforms_json", columnDefinition = "CLOB")
+    @Column(name = "platforms_json")
     private String platformsJson;
 
     @Column(name = "estimated_time", length = 80)
@@ -59,6 +59,6 @@ public class JourneyStep extends BaseEntity {
     @Column(nullable = false, length = 32)
     private JourneyStepStatus status = JourneyStepStatus.PENDING;
 
-    @Column(name = "last_update", columnDefinition = "TIMESTAMP(0)")
+    @Column(name = "last_update")
     private LocalDateTime lastUpdate;
 }

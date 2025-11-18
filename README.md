@@ -85,7 +85,7 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 - `api/controller`: REST Controllers expõem endpoints focados em autenticação, dashboard, jornada, profissão, perfil, chat e currículo.
 - `api/dto`: records Java que tipam todas as requisições e respostas, concentrando regras de validação (`jakarta.validation`).
 - `service`: regras de negócio. Destaques: `GeminiService` (integração IA + rate limit), `JourneyService`, `ResumeService`, `ProfileService`, `ChatService`, etc.
-- `domain` + `repository`: entidades JPA (`User`, `Journey`, `JourneyStep`, `ResumeAnalysis`, `ChatMessage`) e interfaces Spring Data para Oracle.
+- `domain` + `repository`: entidades JPA (`User`, `Journey`, `JourneyStep`, `ResumeAnalysis`, `ChatMessage`) e interfaces Spring Data preparadas para Azure SQL (SQL Server).
 - `security`: filtro `FirebaseAuthenticationFilter` valida JWTs do Firebase, aplica rate limit (`RateLimitService`) e injeta o usuário em `AuthenticatedUserContext`.
 - `config`: configurações de cache (Caffeine), internacionalização, RabbitMQ, Gemini Client e MessageSource.
 - `messaging`: `NotificationProducer` publica eventos no RabbitMQ, `NotificationListener` registra consumo assíncrono.
@@ -93,10 +93,10 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 ### Principais tecnologias
 - **Linguagem/Runtime**: Java 17, Maven Wrapper.
 - **Framework**: Spring Boot (Web, Security, Validation, Data JPA, Cache, Actuator), Lombok.
-- **Banco**: Oracle (driver `ojdbc11`), com dependência H2 apenas para testes rápidos.
+- **Banco**: Azure SQL Database / SQL Server (driver `mssql-jdbc`), com dependência H2 apenas para smoke tests locais.
 - **IA**: SDK oficial `google-genai` (Gemini 2.5 Flash) + Apache Tika para extrair texto de currículos.
 - **Mensageria**: RabbitMQ (AMQP), com conversores Jackson.
-- **Outros**: Micrometer Tracing, Spring REST Docs (configurado no `pom`), Testcontainers (RabbitMQ + Oracle), Caffeine Cache, internacionalização (`messages*.properties`).
+- **Outros**: Micrometer Tracing, Spring REST Docs (configurado no `pom`), Testcontainers (RabbitMQ + SQL Server), Caffeine Cache, internacionalização (`messages*.properties`).
 - **Documentação auxiliar**: `API-SPEC.md` detalha fluxos de autenticação e endpoints.
 
 ### Fluxos adicionais
@@ -164,7 +164,7 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 ## Pré-requisitos
 - Java 17 (JDK).
 - Maven 3.9+ (ou `./mvnw`).
-- Oracle Database acessível (ajuste `spring.datasource.*`). Para desenvolvimento local pode-se habilitar Testcontainers Oracle ou apontar para H2.
+- Azure SQL Database / SQL Server acessível (ajuste `spring.datasource.*`). Para desenvolvimento local pode-se habilitar Testcontainers SQL Server ou apontar para H2.
 - RabbitMQ rodando localmente (porta 5672) para envio/consumo de notificações.
 - Conta no Google AI Studio para uma API key Gemini (`gemini.api-key`).
 - Projeto Firebase para gerar tokens JWT (pode usar o projeto demonstrativo configurado nos HTMLs).
@@ -176,10 +176,10 @@ git clone <url-do-repo>
 cd nextstep
 
 # 2. Configurar credenciais sensíveis (recomenda-se variáveis ou application-local.properties)
-cp src/main/resources/application.properties .env # ajuste Oracle, RabbitMQ, Gemini etc.
+cp src/main/resources/application.properties .env # ajuste Azure SQL, RabbitMQ, Gemini etc.
 
 # Alternativamente exporte (PowerShell):
-$env:SPRING_DATASOURCE_URL="jdbc:oracle:thin:@//host:1521/service"
+$env:SPRING_DATASOURCE_URL="jdbc:sqlserver://host:1433;database=db;user=user@host;password=Senha!;encrypt=true;trustServerCertificate=false;loginTimeout=30;"
 $env:GEMINI_API_KEY="sua-chave"
 
 # 3. Instalar dependências e compilar
@@ -198,7 +198,7 @@ $env:GEMINI_API_KEY="sua-chave"
 ## Execução de Testes
 (- Testes automatizados atuais são básicos (`NextstepApplicationTests` apenas valida o contexto).
 - Rodar: `./mvnw test`
-- Há dependências de Testcontainers (Oracle Free + RabbitMQ); habilite definindo `spring.testcontainers.enabled=true` caso queira usar os ambientes dockerizados para testes de integração.)
+- Há dependências de Testcontainers (SQL Server + RabbitMQ); habilite definindo `spring.testcontainers.enabled=true` caso queira usar os ambientes dockerizados para testes de integração.)
 
 ## Ambientes e Deploy
 (Fazer devops primeiro)
@@ -235,6 +235,4 @@ nextstep/
 - Integrações externas encapsuladas (`GeminiService`, `ResumeTextExtractor`, `NotificationProducer`).
 - Uso de cache local (Caffeine) e internacionalização (`messages.properties`) para mensagens de erro.
 - Eventos assíncronos publicados via RabbitMQ para desacoplar notificações do fluxo síncrono.
-
-
 

@@ -1,0 +1,135 @@
+trigger:
+  branches:
+    include:
+      - main
+
+name: $(Date:yyyyMMdd)$(Rev:.r)
+
+variables:
+  # Ajuste conforme seus padrões/scripts
+  vmImage: 'ubuntu-latest'
+  imageName: 'nextstep'
+  javaVersion: '17'
+
+  # Pegos de Library/Variables ou setados aqui
+  AZURE_RESOURCE_GROUP: 'rg-nextstep'
+  AZURE_WEBAPP_NAME: 'nextstep-2TDSB'
+  AZURE_ACR_NAME: 'acrnextstep'
+
+stages:
+# ========== CI ==========
+- stage: CI
+  displayName: 'Build, Test & Push Image'
+  jobs:
+  - job: build_test_push
+    pool:
+      vmImage: $(vmImage)
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - task: Bash@3
+      displayName: 'Instalar Java/Maven (imagem já vem pronta, só garantir versões)'
+      inputs:
+        targetType: 'inline'
+        script: |
+          java -version
+          mvn -v
+
+    - task: Bash@3
+      displayName: 'Build Maven (sem testes para compilar rápido)'
+      inputs:
+        targetType: 'inline'
+        script: |
+          mvn -B -q -e -DskipTests package
+
+    - task: Bash@3
+      displayName: 'Executar Testes'
+      inputs:
+        targetType: 'inline'
+        script: |
+          mvn -B -q -e test
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publicar Artefato (target/)'
+      inputs:
+        PathtoPublish: 'target'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+    # Login no ACR (usando credenciais simples)
+    - task: Bash@3
+      displayName: 'Docker Login no ACR'
+      env:
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
+      inputs:
+        targetType: 'inline'
+        script: |
+          ACR_LOGIN_SERVER=$(az acr show -n $(AZURE_ACR_NAME) --query loginServer -o tsv)
+          echo "$ACR_PASSWORD" | docker login $ACR_LOGIN_SERVER -u "$ACR_USERNAME" --password-stdin
+          echo "ACR_LOGIN_SERVER=$ACR_LOGIN_SERVER" >> $(Build.SourcesDirectory)/_acr.env
+
+    - task: Bash@3
+      displayName: 'Build & Push Docker'
+      inputs:
+        targetType: 'inline'
+        script: |
+          source $(Build.SourcesDirectory)/_acr.env
+          IMAGE_TAG="${BUILD_BUILDID}"
+          docker build -t $ACR_LOGIN_SERVER/$(imageName):$IMAGE_TAG .
+          docker push $ACR_LOGIN_SERVER/$(imageName):$IMAGE_TAG
+          echo "IMAGE_FULL=$ACR_LOGIN_SERVER/$(imageName):$IMAGE_TAG" >> $(Build.SourcesDirectory)/_image.env
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publicar metadados da imagem'
+      inputs:
+        PathtoPublish: '$(Build.SourcesDirectory)/_image.env'
+        ArtifactName: 'image-meta'
+        publishLocation: 'Container'
+
+# ========== CD ==========
+- stage: CD
+  displayName: 'Deploy to Azure Web App (Container)'
+  dependsOn: CI
+  condition: succeeded()
+  jobs:
+  - job: deploy_container
+    pool:
+      vmImage: $(vmImage)
+    steps:
+    - download: current
+      artifact: image-meta
+
+    - task: Bash@3
+      displayName: 'Ler tag da imagem'
+      inputs:
+        targetType: 'inline'
+        script: |
+          source $(Pipeline.Workspace)/image-meta/_image.env
+          echo "##vso[task.setvariable variable=IMAGE_FULL]$IMAGE_FULL"
+          echo "Usando imagem: $IMAGE_FULL"
+
+    - task: Bash@3
+      displayName: 'Set Container no Web App'
+      env:
+        ACR_USERNAME: $(ACR_USERNAME)
+        ACR_PASSWORD: $(ACR_PASSWORD)
+      inputs:
+        targetType: 'inline'
+        script: |
+          ACR_LOGIN_SERVER=$(az acr show -n $(AZURE_ACR_NAME) --query loginServer -o tsv)
+          az webapp config container set \
+            -g $(AZURE_RESOURCE_GROUP) \
+            -n $(AZURE_WEBAPP_NAME) \
+            --docker-custom-image-name "$(IMAGE_FULL)" \
+            --docker-registry-server-url "https://$ACR_LOGIN_SERVER" \
+            --docker-registry-server-user "$ACR_USERNAME" \
+            --docker-registry-server-password "$ACR_PASSWORD"
+
+    - task: Bash@3
+      displayName: 'Reiniciar Web App'
+      inputs:
+        targetType: 'inline'
+        script: |
+          az webapp restart -g $(AZURE_RESOURCE_GROUP) -n $(AZURE_WEBAPP_NAME)

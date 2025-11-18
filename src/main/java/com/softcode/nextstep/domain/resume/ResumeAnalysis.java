@@ -33,15 +33,15 @@ public class ResumeAnalysis extends BaseEntity {
     private User user;
 
     @Lob
-    @Column(name = "skills_json", nullable = false, columnDefinition = "CLOB")
+    @Column(name = "skills_json", nullable = false)
     private String skillsJson;
 
     @Lob
-    @Column(name = "gaps_json", nullable = false, columnDefinition = "CLOB")
+    @Column(name = "gaps_json", nullable = false)
     private String gapsJson;
 
     @Lob
-    @Column(name = "suggested_careers_json", nullable = false, columnDefinition = "CLOB")
+    @Column(name = "suggested_careers_json", nullable = false)
     private String suggestedCareersJson;
 
     @Column(name = "experience_level", length = 80)
@@ -56,6 +56,6 @@ public class ResumeAnalysis extends BaseEntity {
     @Column(name = "summary", length = 500)
     private String summary;
 
-    @Column(name = "analyzed_at", nullable = false, columnDefinition = "TIMESTAMP(0)")
+    @Column(name = "analyzed_at", nullable = false)
     private LocalDateTime analyzedAt;
 }
