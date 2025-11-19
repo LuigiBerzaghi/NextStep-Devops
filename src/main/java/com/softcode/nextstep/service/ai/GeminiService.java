@@ -369,14 +369,15 @@ public class GeminiService {
             return response;
         }
         String cleaned = response
-                .replace("\\r\\n", "\n")
-                .replace("\\n", "\n")
-                .replace("\\t", "    ")
-                .replace("\\r", "\n");
-        // Remove duplicated empty lines caused by conversions
-        cleaned = cleaned.replaceAll("\n{3,}", "\n\n");
-        cleaned = cleaned.replace("\n", " ");
-        cleaned = cleaned.replaceAll(" {2,}", " ");
-        return cleaned.trim();
+                .replace("\\r\\n", " ")
+                .replace("\\n", " ")
+                .replace("\\t", " ")
+                .replace("\\r", " ");
+        cleaned = cleaned.replaceAll("\\s{2,}", " ").trim();
+        if (cleaned.length() <= 600) {
+            return cleaned;
+        }
+        String truncated = cleaned.substring(0, 600);
+        return truncated + "...";
     }
 }
