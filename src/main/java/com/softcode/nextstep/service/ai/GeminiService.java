@@ -2,6 +2,7 @@ package com.softcode.nextstep.service.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
+import com.google.genai.errors.ApiException;
 import com.google.genai.types.GenerateContentResponse;
 import com.softcode.nextstep.api.dto.common.CareerSuggestionDto;
 import com.softcode.nextstep.api.dto.common.InsightDto;
@@ -95,14 +96,27 @@ public class GeminiService {
     private final ObjectMapper objectMapper;
 
     public ResumeSummaryDto analyzeResume(User user, String fileName, byte[] content) {
+        if (!geminiProperties.isEnabled()) {
+            log.info("Gemini desabilitado via configuracao - aplicando fallback da analise de curriculo.");
+            return fallbackResumeSummary(user);
+        }
         enforceAiLimit(user);
         String resumeText = resumeTextExtractor.extractText(content, fileName);
-        String response = callGemini(RESUME_PROMPT, buildResumeContext(user, fileName, resumeText));
-        ResumeSummaryPayload payload = parseResponse(response, ResumeSummaryPayload.class);
-        return payload.toDto();
+        try {
+            String response = callGemini(RESUME_PROMPT, buildResumeContext(user, fileName, resumeText));
+            ResumeSummaryPayload payload = parseResponse(response, ResumeSummaryPayload.class);
+            return payload.toDto();
+        } catch (ApiException | IllegalStateException ex) {
+            log.warn("Falha ao consultar Gemini para analise de curriculo. Aplicando fallback.", ex);
+            return fallbackResumeSummary(user);
+        }
     }
 
     public JourneyPlan generateJourneyPlan(User user, JourneyGenerationRequest request) {
+        if (!geminiProperties.isEnabled()) {
+            log.info("Gemini desabilitado via configuracao - retornando jornada padrao.");
+            return fallbackJourneyPlan(user, request);
+        }
         enforceAiLimit(user);
         String context = """
                 Usuario: %s
@@ -111,27 +125,41 @@ public class GeminiService {
                 Lacunas identificadas: %s
                 """
                 .formatted(
-                        user.getName() == null ? user.getEmail() : user.getName(),
+                        resolveUserName(user),
                         request.desiredJob(),
                         String.join(", ", request.currentSkills()),
                         String.join(", ", request.gaps()));
-        String response = callGemini(JOURNEY_PROMPT, context);
-        JourneyPlanPayload payload = parseResponse(response, JourneyPlanPayload.class);
-        JourneyPlan plan = payload.toPlan();
-        return new JourneyPlan(plan.estimatedTime(), plan.steps(), sanitizeInsights(plan.insights()));
+        try {
+            String response = callGemini(JOURNEY_PROMPT, context);
+            JourneyPlanPayload payload = parseResponse(response, JourneyPlanPayload.class);
+            JourneyPlan plan = payload.toPlan();
+            return new JourneyPlan(plan.estimatedTime(), plan.steps(), sanitizeInsights(plan.insights()));
+        } catch (ApiException | IllegalStateException ex) {
+            log.warn("Falha ao consultar Gemini para jornada. Aplicando fallback.", ex);
+            return fallbackJourneyPlan(user, request);
+        }
     }
 
     public String answerChat(User user, String prompt) {
+        if (!geminiProperties.isEnabled()) {
+            log.info("Gemini desabilitado via configuracao - retornando resposta padrao no chat.");
+            return fallbackChatAnswer(prompt);
+        }
         enforceAiLimit(user);
         String context = """
                 Usuario: %s (%s)
                 Mensagem: %s
                 """
                 .formatted(
-                        user.getName() == null ? user.getEmail() : user.getName(),
+                        resolveUserName(user),
                         user.getCurrentJob() == null ? "sem cargo definido" : user.getCurrentJob(),
                         prompt);
-        return cleanPlainText(callGemini(CHAT_PROMPT, context));
+        try {
+            return cleanPlainText(callGemini(CHAT_PROMPT, context));
+        } catch (ApiException | IllegalStateException ex) {
+            log.warn("Falha ao consultar Gemini no chat. Aplicando fallback.", ex);
+            return fallbackChatAnswer(prompt);
+        }
     }
 
     private void enforceAiLimit(User user) {
@@ -146,7 +174,11 @@ public class GeminiService {
                 Texto do curriculo:
                 %s
                 """
-                .formatted(user.getName() == null ? user.getEmail() : user.getName(), fileName, resumeText);
+                .formatted(resolveUserName(user), fileName, resumeText);
+    }
+
+    private String resolveUserName(User user) {
+        return user.getName() == null ? user.getEmail() : user.getName();
     }
 
     public record JourneyPlan(String estimatedTime, List<JourneyStepPlan> steps, List<InsightDto> insights) {}
@@ -192,6 +224,63 @@ public class GeminiService {
             List<String> safePlatforms = platforms == null ? List.of() : platforms;
             return new JourneyStepPlan(order, title, objective, resources, safePlatforms, estimatedTime);
         }
+    }
+
+    private ResumeSummaryDto fallbackResumeSummary(User user) {
+        String currentJob = user.getCurrentJob() == null ? "Profissional de tecnologia" : user.getCurrentJob();
+        List<SkillDto> skills = List.of(
+                new SkillDto("Comunicacao", "Intermediario", 70),
+                new SkillDto("Planejamento", "Intermediario", 65),
+                new SkillDto("Aprendizado continuo", "Avancado", 80));
+        List<String> gaps = List.of("Certificacao cloud", "Ingles avancado");
+        List<CareerSuggestionDto> suggestions = List.of(
+                new CareerSuggestionDto("Product Owner", "82%", "Voce domina visao de produto e pode liderar discovery."),
+                new CareerSuggestionDto("Tech Lead", "78%", "Ha historico tecnico suficiente para orientar uma squad."),
+                new CareerSuggestionDto("Arquiteto de Solucoes", "73%", "Reforce conhecimentos em integracoes e seguranca."));
+        return new ResumeSummaryDto(skills, "Pleno", currentJob, 5, gaps, suggestions);
+    }
+
+    private JourneyPlan fallbackJourneyPlan(User user, JourneyGenerationRequest request) {
+        List<JourneyStepPlan> steps = List.of(
+                new JourneyStepPlan(
+                        1,
+                        "Mapear cenario atual",
+                        "Liste entregas recentes e como elas aproximam do cargo %s."
+                                .formatted(request.desiredJob()),
+                        "Checklist NextStep + feedback rapido do gestor",
+                        List.of("NextStep Academy"),
+                        "1 semana"),
+                new JourneyStepPlan(
+                        2,
+                        "Fortalecer competencias tecnicas",
+                        "Estude arquitetura distribuida e fundamentos de cloud.",
+                        "Trilhas Azure/AWS e estudos de caso NextStep",
+                        List.of("Azure Learn", "Coursera"),
+                        "4 semanas"),
+                new JourneyStepPlan(
+                        3,
+                        "Desenvolver plano de impacto",
+                        "Monte roteiro de 60 dias mostrando ganhos esperados e indicadores.",
+                        "Template NextStep + sessoes de mentoria",
+                        List.of("Notion", "Miro"),
+                        "3 semanas"));
+        List<InsightDto> insights = List.of(
+                new InsightDto("skill", "lightbulb", "Priorize fundamentos de arquitetura e mensuracao de impacto."),
+                new InsightDto("trend", "trendingUp", "Empresas valorizam lideres com fluencia em cloud e dados."),
+                new InsightDto("certification", "award", "Uma certificacao Azure ou AWS diferencia seu perfil."));
+        return new JourneyPlan("8-12 semanas", steps, insights);
+    }
+
+    private String fallbackChatAnswer(String prompt) {
+        String excerpt = prompt == null ? "" : (prompt.length() > 280 ? prompt.substring(0, 280) + "..." : prompt);
+        return """
+                Nosso assistente de IA esta indisponivel no momento, mas aqui vai uma orientacao rapida com base no seu texto:
+
+                %s
+
+                Divida seu plano em acoes curtas, registre aprendizados e compartilhe com o time. Assim que o motor de IA voltar, voce podera aprofundar essas sugestoes.
+                """
+                .formatted(excerpt);
     }
 
     private String callGemini(String systemPrompt, String userContext) {

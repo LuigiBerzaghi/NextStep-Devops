@@ -9,6 +9,7 @@ public class GeminiProperties {
     private String model = "models/gemini-1.5-flash-latest";
     private double temperature = 0.7;
     private int maxOutputTokens = 2048;
+    private boolean enabled = true;
 
     public String getApiKey() {
         return apiKey;
@@ -41,5 +42,12 @@ public class GeminiProperties {
     public void setMaxOutputTokens(int maxOutputTokens) {
         this.maxOutputTokens = maxOutputTokens;
     }
-}
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+}
