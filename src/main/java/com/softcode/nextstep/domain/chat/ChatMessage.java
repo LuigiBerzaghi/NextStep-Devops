@@ -40,7 +40,7 @@ public class ChatMessage extends BaseEntity {
     @Column(nullable = false, length = 16)
     private ChatRole role;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 650)
     private String message;
 
     @Column(nullable = false)
