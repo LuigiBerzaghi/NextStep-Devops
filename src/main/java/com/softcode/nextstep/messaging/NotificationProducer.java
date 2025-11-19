@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class NotificationProducer {
 
-    private final RabbitTemplate rabbitTemplate;
+    private final ObjectProvider<RabbitTemplate> rabbitTemplateProvider;
 
     @Value("${messaging.notifications.exchange}")
     private String exchange;
@@ -26,7 +27,11 @@ public class NotificationProducer {
         if (!notificationsEnabled) {
             return;
         }
-        rabbitTemplate.convertAndSend(exchange, routingKey, message);
+        RabbitTemplate template = rabbitTemplateProvider.getIfAvailable();
+        if (template == null) {
+            return;
+        }
+        template.convertAndSend(exchange, routingKey, message);
     }
 
     public void notifyJourneyGenerated(UUID userId, UUID journeyId, String desiredJob) {
