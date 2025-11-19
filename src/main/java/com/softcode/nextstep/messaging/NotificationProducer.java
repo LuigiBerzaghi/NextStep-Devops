@@ -19,7 +19,13 @@ public class NotificationProducer {
     @Value("${messaging.notifications.routing-key}")
     private String routingKey;
 
+    @Value("${messaging.notifications.enabled:true}")
+    private boolean notificationsEnabled;
+
     public void sendNotification(NotificationMessage message) {
+        if (!notificationsEnabled) {
+            return;
+        }
         rabbitTemplate.convertAndSend(exchange, routingKey, message);
     }
 
