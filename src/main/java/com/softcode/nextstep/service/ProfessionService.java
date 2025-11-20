@@ -36,17 +36,17 @@ public class ProfessionService {
                 .toList();
         String category = resolveCategory(analysis);
         List<ProfessionSuggestionItem> items = IntStream.range(0, careerSuggestions.size())
-                .mapToObj(index -> toItem(careerSuggestions.get(index), category, index))
+                .mapToObj(index -> toItem(careerSuggestions.get(index), category, index + 1))
                 .toList();
         List<ProfessionSuggestionItem> filtered = filterBySearch(items, search);
         return new ProfessionSuggestionResponse(filtered);
     }
 
-    private ProfessionSuggestionItem toItem(CareerSuggestionDto suggestion, String category, int index) {
+    private ProfessionSuggestionItem toItem(CareerSuggestionDto suggestion, String category, int id) {
         String title = StringUtils.hasText(suggestion.title()) ? suggestion.title() : "Profissao sugerida";
         String match = suggestion.match() == null ? "" : suggestion.match();
         String description = suggestion.reason() == null ? "" : suggestion.reason();
-        return new ProfessionSuggestionItem(buildId(title, index), title, category, match, description);
+        return new ProfessionSuggestionItem(id, title, category, match, description);
     }
 
     private List<ProfessionSuggestionItem> filterBySearch(List<ProfessionSuggestionItem> items, String search) {
@@ -74,15 +74,6 @@ public class ProfessionService {
         } catch (Exception ex) {
             throw new IllegalStateException("Falha ao ler sugestoes do curriculo", ex);
         }
-    }
-
-    private String buildId(String title, int index) {
-        String normalized = title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
-        normalized = normalized.replaceAll("(^-|-$)", "");
-        if (!StringUtils.hasText(normalized)) {
-            normalized = "suggestion";
-        }
-        return normalized + "-" + (index + 1);
     }
 
     private String resolveCategory(ResumeAnalysis analysis) {
