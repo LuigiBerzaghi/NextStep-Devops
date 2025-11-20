@@ -92,6 +92,21 @@ stages:
           vmImage: $(vmImage)
         steps:
           - task: AzureCLI@2
+            displayName: 'Definir GOOGLE_API_KEY nas App Settings'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az webapp config appsettings set \
+                  --resource-group "$(RG_NAME)" \
+                  --name "$(APP_NAME)" \
+                  --settings "GOOGLE_API_KEY=${GOOGLE_API_KEY}"
+            env:
+              GOOGLE_API_KEY: $(GOOGLE_API_KEY)
+
+          - task: AzureCLI@2
             displayName: 'az webapp config container set (imagem do commit)'
             inputs:
               azureSubscription: '$(azureSubscription)'
