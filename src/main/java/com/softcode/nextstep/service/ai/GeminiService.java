@@ -141,25 +141,28 @@ public class GeminiService {
     }
 
     public String answerChat(User user, String prompt) {
+        String response;
         if (!geminiProperties.isEnabled()) {
             log.info("Gemini desabilitado via configuracao - retornando resposta padrao no chat.");
-            return fallbackChatAnswer(prompt);
+            response = fallbackChatAnswer(prompt);
+        } else {
+            enforceAiLimit(user);
+            String context = """
+                    Usuario: %s (%s)
+                    Mensagem: %s
+                    """
+                    .formatted(
+                            resolveUserName(user),
+                            user.getCurrentJob() == null ? "sem cargo definido" : user.getCurrentJob(),
+                            prompt);
+            try {
+                response = callGemini(CHAT_PROMPT, context);
+            } catch (ApiException | IllegalStateException ex) {
+                log.warn("Falha ao consultar Gemini no chat. Aplicando fallback.", ex);
+                response = fallbackChatAnswer(prompt);
+            }
         }
-        enforceAiLimit(user);
-        String context = """
-                Usuario: %s (%s)
-                Mensagem: %s
-                """
-                .formatted(
-                        resolveUserName(user),
-                        user.getCurrentJob() == null ? "sem cargo definido" : user.getCurrentJob(),
-                        prompt);
-        try {
-            return cleanPlainText(callGemini(CHAT_PROMPT, context));
-        } catch (ApiException | IllegalStateException ex) {
-            log.warn("Falha ao consultar Gemini no chat. Aplicando fallback.", ex);
-            return fallbackChatAnswer(prompt);
-        }
+        return cleanPlainText(response);
     }
 
     private void enforceAiLimit(User user) {
@@ -369,10 +372,13 @@ public class GeminiService {
             return response;
         }
         String cleaned = response
+                .replace("\r\n", " ")
+                .replace("\n", " ")
+                .replace("\t", " ")
+                .replace("\r", " ")
                 .replace("\\r\\n", " ")
                 .replace("\\n", " ")
-                .replace("\\t", " ")
-                .replace("\\r", " ");
+                .replace("\\t", " ");
         cleaned = cleaned.replaceAll("\\s{2,}", " ").trim();
         if (cleaned.length() <= 600) {
             return cleaned;
