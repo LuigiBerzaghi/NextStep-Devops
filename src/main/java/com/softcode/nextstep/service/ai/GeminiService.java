@@ -7,7 +7,6 @@ import com.google.genai.types.GenerateContentResponse;
 import com.softcode.nextstep.api.dto.common.CareerSuggestionDto;
 import com.softcode.nextstep.api.dto.common.InsightDto;
 import com.softcode.nextstep.api.dto.common.SkillDto;
-import com.softcode.nextstep.api.dto.journey.JourneyGenerationRequest;
 import com.softcode.nextstep.api.dto.resume.ResumeSummaryDto;
 import com.softcode.nextstep.config.GeminiProperties;
 import com.softcode.nextstep.domain.user.User;
@@ -16,6 +15,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +45,8 @@ public class GeminiService {
             }
             Certifique-se de que o JSON seja valido. O texto do curriculo vem a seguir.
             Nao inclua texto em Markdown ou comentarios fora do JSON.
+            Para as plataformas, pode considerar também cursos de graduação em instituições de renome, caso necessário. Cite apenas a abreviação da instituição (ex: "Universidade de São Paulo" : "USP").
+            Caso haja a a necessidade de sugerir algum curso de graduação, coloque ele na primeira etapa do plano.
             """;
     private static final String JOURNEY_PROMPT = """
             Voce e um mentor de carreira. A partir dos dados fornecidos (skills atuais, lacunas e cargo desejado),
@@ -112,12 +114,15 @@ public class GeminiService {
         }
     }
 
-    public JourneyPlan generateJourneyPlan(User user, JourneyGenerationRequest request) {
+    public JourneyPlan generateJourneyPlan(User user, String desiredJob, List<SkillDto> currentSkills, List<String> gaps) {
         if (!geminiProperties.isEnabled()) {
             log.info("Gemini desabilitado via configuracao - retornando jornada padrao.");
-            return fallbackJourneyPlan(user, request);
+            return fallbackJourneyPlan(user, desiredJob);
         }
         enforceAiLimit(user);
+        List<SkillDto> safeSkills = currentSkills == null ? List.of() : currentSkills;
+        List<String> safeGaps = sanitizeTextList(gaps);
+        String gapSummary = safeGaps.isEmpty() ? "Nao informado" : String.join(", ", safeGaps);
         String context = """
                 Usuario: %s
                 Cargo desejado: %s
@@ -126,9 +131,9 @@ public class GeminiService {
                 """
                 .formatted(
                         resolveUserName(user),
-                        request.desiredJob(),
-                        String.join(", ", request.currentSkills()),
-                        String.join(", ", request.gaps()));
+                        desiredJob,
+                        formatSkillsForPrompt(safeSkills),
+                        gapSummary);
         try {
             String response = callGemini(JOURNEY_PROMPT, context);
             JourneyPlanPayload payload = parseResponse(response, JourneyPlanPayload.class);
@@ -136,7 +141,7 @@ public class GeminiService {
             return new JourneyPlan(plan.estimatedTime(), plan.steps(), sanitizeInsights(plan.insights()));
         } catch (ApiException | IllegalStateException ex) {
             log.warn("Falha ao consultar Gemini para jornada. Aplicando fallback.", ex);
-            return fallbackJourneyPlan(user, request);
+            return fallbackJourneyPlan(user, desiredJob);
         }
     }
 
@@ -182,6 +187,36 @@ public class GeminiService {
 
     private String resolveUserName(User user) {
         return user.getName() == null ? user.getEmail() : user.getName();
+    }
+
+    private String formatSkillsForPrompt(List<SkillDto> skills) {
+        if (skills == null || skills.isEmpty()) {
+            return "Nao informado";
+        }
+        return skills.stream()
+                .map(this::formatSkill)
+                .collect(Collectors.joining(", "));
+    }
+
+    private String formatSkill(SkillDto skill) {
+        if (skill == null) {
+            return "Habilidade";
+        }
+        String name = StringUtils.hasText(skill.name()) ? skill.name().trim() : "Habilidade";
+        String level = StringUtils.hasText(skill.level()) ? " - " + skill.level().trim() : "";
+        String progress = skill.progress() == null ? "" : " (" + skill.progress() + "%)";
+        return name + level + progress;
+    }
+
+    private List<String> sanitizeTextList(List<String> values) {
+        if (values == null) {
+            return List.of();
+        }
+        return values.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .toList();
     }
 
     public record JourneyPlan(String estimatedTime, List<JourneyStepPlan> steps, List<InsightDto> insights) {}
@@ -243,13 +278,13 @@ public class GeminiService {
         return new ResumeSummaryDto(skills, "Pleno", currentJob, 5, gaps, suggestions);
     }
 
-    private JourneyPlan fallbackJourneyPlan(User user, JourneyGenerationRequest request) {
+    private JourneyPlan fallbackJourneyPlan(User user, String desiredJob) {
         List<JourneyStepPlan> steps = List.of(
                 new JourneyStepPlan(
                         1,
                         "Mapear cenario atual",
                         "Liste entregas recentes e como elas aproximam do cargo %s."
-                                .formatted(request.desiredJob()),
+                                .formatted(desiredJob),
                         "Checklist NextStep + feedback rapido do gestor",
                         List.of("NextStep Academy"),
                         "1 semana"),

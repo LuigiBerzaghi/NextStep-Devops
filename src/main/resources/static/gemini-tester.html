@@ -122,10 +122,7 @@
         <h2>2. Gerar jornada</h2>
         <label for="desiredJob">Cargo desejado</label>
         <input id="desiredJob" type="text" placeholder="Full Stack Developer" />
-        <label for="skills">Habilidades atuais (separadas por virgula)</label>
-        <input id="skills" type="text" placeholder="Java, Spring, React" />
-        <label for="gaps">Lacunas (separadas por virgula)</label>
-        <input id="gaps" type="text" placeholder="Cloud, Testes" />
+        <small>Skills e lacunas serao carregadas da ultima analise de curriculo.</small>
         <button id="generateJourneyBtn">Enviar para /api/journeys/generate</button>
         <div id="journeyStatus" class="status"></div>
         <pre id="journeyResponse">Sem resposta ainda.</pre>
@@ -160,8 +157,6 @@
         token: $("token"),
         resumeFile: $("resumeFile"),
         desiredJob: $("desiredJob"),
-        skills: $("skills"),
-        gaps: $("gaps"),
         conversationId: $("conversationId"),
         chatMessage: $("chatMessage"),
         userId: $("userId")
@@ -230,9 +225,7 @@
     buttons.generateJourneyBtn.addEventListener("click", async () => {
         try {
             const body = {
-                desiredJob: inputs.desiredJob.value || "Full Stack Developer",
-                currentSkills: splitValues(inputs.skills.value, ["Java", "Spring"]),
-                gaps: splitValues(inputs.gaps.value, ["Cloud", "Testes"])
+                desiredJob: inputs.desiredJob.value || "Full Stack Developer"
             };
             const response = await fetchJson("/api/journeys/generate", {
                 method: "POST",
@@ -338,11 +331,6 @@
             throw error;
         }
         return { json, pretty: typeof json === "string" ? json : JSON.stringify(json, null, 2) };
-    }
-
-    function splitValues(value, fallback) {
-        if (!value) return fallback;
-        return value.split(",").map((item) => item.trim()).filter(Boolean);
     }
 
     function handleError(error, statusEl, outputEl) {

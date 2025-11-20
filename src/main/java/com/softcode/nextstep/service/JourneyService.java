@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softcode.nextstep.api.dto.common.InsightDto;
+import com.softcode.nextstep.api.dto.common.SkillDto;
 import com.softcode.nextstep.api.dto.journey.JourneyGenerationRequest;
 import com.softcode.nextstep.api.dto.journey.JourneyHistoryItemResponse;
 import com.softcode.nextstep.api.dto.journey.JourneyHistoryResponse;
@@ -14,12 +15,14 @@ import com.softcode.nextstep.domain.journey.Journey;
 import com.softcode.nextstep.domain.journey.JourneyStatus;
 import com.softcode.nextstep.domain.journey.JourneyStep;
 import com.softcode.nextstep.domain.journey.JourneyStepStatus;
+import com.softcode.nextstep.domain.resume.ResumeAnalysis;
 import com.softcode.nextstep.domain.user.User;
 import com.softcode.nextstep.exception.BadRequestException;
 import com.softcode.nextstep.exception.NotFoundException;
 import com.softcode.nextstep.messaging.NotificationProducer;
 import com.softcode.nextstep.repository.JourneyRepository;
 import com.softcode.nextstep.repository.JourneyStepRepository;
+import com.softcode.nextstep.repository.ResumeAnalysisRepository;
 import com.softcode.nextstep.security.AuthenticatedUserContext;
 import com.softcode.nextstep.service.ai.GeminiService;
 import com.softcode.nextstep.service.ai.GeminiService.JourneyPlan;
@@ -45,6 +48,7 @@ public class JourneyService {
 
     private final JourneyRepository journeyRepository;
     private final JourneyStepRepository journeyStepRepository;
+    private final ResumeAnalysisRepository resumeAnalysisRepository;
     private final GeminiService geminiService;
     private final AuthenticatedUserContext authenticatedUserContext;
     private final ObjectMapper objectMapper;
@@ -54,10 +58,13 @@ public class JourneyService {
     @CacheEvict(cacheNames = "dashboard", key = "@authenticatedUserContext.getCurrentUser().getId()")
     public JourneyResponse generateJourney(JourneyGenerationRequest request) {
         User user = authenticatedUserContext.getCurrentUser();
-        JourneyPlan plan = geminiService.generateJourneyPlan(user, request);
+        ResumeContext resumeContext = resolveResumeContext(user);
+        String normalizedDesiredJob = normalizeDesiredJob(request.desiredJob());
+        JourneyPlan plan = geminiService.generateJourneyPlan(
+                user, normalizedDesiredJob, resumeContext.skills(), resumeContext.gaps());
         Journey journey = new Journey();
         journey.setUser(user);
-        journey.setDesiredJob(request.desiredJob());
+        journey.setDesiredJob(normalizedDesiredJob);
         journey.setStatus(JourneyStatus.ACTIVE);
         journey.setEstimatedTime(plan.estimatedTime());
         journey.setOverallProgress(0);
@@ -116,6 +123,27 @@ public class JourneyService {
         recalculateJourneyProgress(journey);
         journeyRepository.save(journey);
         return mapStep(step);
+    }
+
+    private ResumeContext resolveResumeContext(User user) {
+        ResumeAnalysis analysis = resumeAnalysisRepository
+                .findTopByUserOrderByAnalyzedAtDesc(user)
+                .orElseThrow(() -> new BadRequestException("error.journey.resume_required"));
+        List<SkillDto> skills = readJson(analysis.getSkillsJson(), new TypeReference<List<SkillDto>>() {});
+        List<String> gaps = readJson(analysis.getGapsJson(), new TypeReference<List<String>>() {});
+        return new ResumeContext(skills, gaps);
+    }
+
+    private String normalizeDesiredJob(String desiredJob) {
+        if (desiredJob == null) {
+            return "";
+        }
+        String sanitized = desiredJob.replaceAll("<[^>]+>", " ");
+        sanitized = sanitized.replaceAll("\\s+", " ").trim();
+        if (!StringUtils.hasText(sanitized)) {
+            throw new BadRequestException("error.journey.invalid_desired_job");
+        }
+        return sanitized;
     }
 
     private JourneyStep toEntity(Journey journey, JourneyStepPlan plan) {
@@ -240,4 +268,6 @@ public class JourneyService {
             throw new IllegalStateException("Falha ao converter insights em JSON", e);
         }
     }
+
+    private record ResumeContext(List<SkillDto> skills, List<String> gaps) {}
 }

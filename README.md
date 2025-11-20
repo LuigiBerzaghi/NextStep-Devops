@@ -137,7 +137,7 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 ### Jornadas
 | Método | Rota | Descrição | Corpo | Resposta | Status |
 | --- | --- | --- | --- | --- | --- |
-| POST | `/api/journeys/generate` | Cria nova jornada usando Gemini a partir do cargo desejado, skills e lacunas. | `JourneyGenerationRequest` | `JourneyResponse` | 201 |
+| POST | `/api/journeys/generate` | Cria nova jornada usando Gemini a partir do cargo desejado e da ultima analise de curriculo. | `JourneyGenerationRequest` | `JourneyResponse` | 201 |
 | GET | `/api/journeys/active` | Recupera a jornada ativa do usuário. | — | `JourneyResponse` | 200 |
 | PATCH | `/api/journeys/steps/{stepId}/progress` | Atualiza progresso de um passo (0–100). | `JourneyProgressUpdateRequest` | `JourneyStepResponse` | 200 |
 | GET | `/api/journeys/history?page=&size=` | Paginado das jornadas concluídas. | — | `JourneyHistoryResponse` | 200 |
@@ -235,4 +235,3 @@ nextstep/
 - Integrações externas encapsuladas (`GeminiService`, `ResumeTextExtractor`, `NotificationProducer`).
 - Uso de cache local (Caffeine) e internacionalização (`messages.properties`) para mensagens de erro.
 - Eventos assíncronos publicados via RabbitMQ para desacoplar notificações do fluxo síncrono.
-
