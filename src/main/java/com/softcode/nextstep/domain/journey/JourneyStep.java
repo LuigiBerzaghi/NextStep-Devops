@@ -53,7 +53,7 @@ public class JourneyStep extends BaseEntity {
     private String estimatedTime;
 
     @Column(nullable = false)
-    private int progress;
+    private boolean progress;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)

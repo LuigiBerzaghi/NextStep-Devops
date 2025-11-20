@@ -139,7 +139,7 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/journeys/generate` | Cria nova jornada usando Gemini a partir do cargo desejado e da ultima analise de curriculo. | `JourneyGenerationRequest` | `JourneyResponse` | 201 |
 | GET | `/api/journeys/active` | Recupera a jornada ativa do usuário. | — | `JourneyResponse` | 200 |
-| PATCH | `/api/journeys/steps/{stepId}/progress` | Atualiza progresso de um passo (0–100). | `JourneyProgressUpdateRequest` | `JourneyStepResponse` | 200 |
+| PATCH | `/api/journeys/steps/{stepId}/progress` | Marca um passo como concluído (`progress=true`) ou não (`progress=false`). | `JourneyProgressUpdateRequest` | `JourneyStepResponse` | 200 |
 | GET | `/api/journeys/history?page=&size=` | Paginado das jornadas concluídas. | — | `JourneyHistoryResponse` | 200 |
 
 ### Chat & Profissões

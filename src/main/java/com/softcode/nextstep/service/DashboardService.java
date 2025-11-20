@@ -11,6 +11,7 @@ import com.softcode.nextstep.api.dto.dashboard.DashboardTrendDto;
 import com.softcode.nextstep.api.dto.dashboard.DashboardUserDto;
 import com.softcode.nextstep.domain.journey.Journey;
 import com.softcode.nextstep.domain.journey.JourneyStatus;
+import com.softcode.nextstep.domain.journey.JourneyStepStatus;
 import com.softcode.nextstep.domain.resume.ResumeAnalysis;
 import com.softcode.nextstep.domain.user.User;
 import com.softcode.nextstep.exception.BadRequestException;
@@ -63,10 +64,10 @@ public class DashboardService {
 
     private DashboardNextStepDto toNextStep(Journey journey) {
         return journey.getSteps().stream()
-                .filter(step -> step.getProgress() < 100)
+                .filter(step -> step.getStatus() != JourneyStepStatus.COMPLETED)
                 .sorted((a, b) -> Integer.compare(a.getOrderIndex(), b.getOrderIndex()))
                 .findFirst()
-                .map(step -> new DashboardNextStepDto(step.getTitle(), step.getObjective(), step.getProgress()))
+                .map(step -> new DashboardNextStepDto(step.getTitle(), step.getObjective(), step.isProgress()))
                 .orElse(null);
     }
 

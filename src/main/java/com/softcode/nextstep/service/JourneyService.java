@@ -117,7 +117,7 @@ public class JourneyService {
             throw new BadRequestException("error.journey.cannot_update_completed");
         }
         step.setProgress(request.progress());
-        step.setStatus(resolveStatus(request.progress()));
+        step.setStatus(resolveStatus(request.progress(), step.getStatus()));
         step.setLastUpdate(LocalDateTime.now());
         journeyStepRepository.save(step);
         recalculateJourneyProgress(journey);
@@ -155,7 +155,7 @@ public class JourneyService {
         step.setResources(plan.resources());
         step.setPlatformsJson(writeJson(sanitizePlatforms(plan.platforms())));
         step.setEstimatedTime(plan.estimatedTime());
-        step.setProgress(0);
+        step.setProgress(false);
         step.setStatus(JourneyStepStatus.PENDING);
         step.setLastUpdate(LocalDateTime.now());
         return step;
@@ -163,8 +163,8 @@ public class JourneyService {
 
     private void recalculateJourneyProgress(Journey journey) {
         int total = journey.getSteps().size();
-        int sum = journey.getSteps().stream().mapToInt(JourneyStep::getProgress).sum();
-        int overall = total == 0 ? 0 : sum / total;
+        long completed = journey.getSteps().stream().filter(JourneyStep::isProgress).count();
+        int overall = total == 0 ? 0 : (int) ((completed * 100) / total);
         journey.setOverallProgress(overall);
         boolean finished = journey.getSteps().stream().allMatch(step -> step.getStatus() == JourneyStepStatus.COMPLETED);
         if (finished) {
@@ -173,24 +173,29 @@ public class JourneyService {
         }
     }
 
-    private JourneyStepStatus resolveStatus(int progress) {
-        if (progress <= 0) {
-            return JourneyStepStatus.PENDING;
-        }
-        if (progress >= 100) {
+    private JourneyStepStatus resolveStatus(boolean completed, JourneyStepStatus previousStatus) {
+        if (completed) {
             return JourneyStepStatus.COMPLETED;
+        }
+        if (previousStatus == JourneyStepStatus.PENDING) {
+            return JourneyStepStatus.PENDING;
         }
         return JourneyStepStatus.IN_PROGRESS;
     }
 
     private JourneyResponse mapToResponse(Journey journey) {
-        List<JourneyStepResponse> steps = journey.getSteps().stream()
-                .sorted(Comparator.comparingInt(JourneyStep::getOrderIndex))
+        List<JourneyStep> orderedSteps =
+                journey.getSteps().stream().sorted(Comparator.comparingInt(JourneyStep::getOrderIndex)).toList();
+        List<JourneyStepResponse> steps = orderedSteps.stream().map(this::mapStep).toList();
+        JourneyStepResponse nextStep = orderedSteps.stream()
+                .filter(step -> step.getStatus() != JourneyStepStatus.COMPLETED)
+                .findFirst()
                 .map(this::mapStep)
-                .toList();
-        JourneyStepResponse nextStep = steps.stream().filter(step -> step.progress() < 100).findFirst().orElse(null);
+                .orElse(null);
         List<InsightDto> insights = readJson(journey.getInsightsJson(), new TypeReference<List<InsightDto>>() {});
-        long completedSteps = steps.stream().filter(step -> "COMPLETED".equals(step.status())).count();
+        long completedSteps = orderedSteps.stream()
+                .filter(step -> step.getStatus() == JourneyStepStatus.COMPLETED)
+                .count();
         return new JourneyResponse(
                 journey.getId(),
                 journey.getDesiredJob(),
@@ -217,9 +222,9 @@ public class JourneyService {
                 step.getResources(),
                 platforms,
                 step.getEstimatedTime(),
-                step.getProgress(),
+                step.isProgress(),
                 step.getStatus().name().toLowerCase(),
-                step.getLastUpdate());
+               step.getLastUpdate());
     }
 
     private List<String> sanitizePlatforms(List<String> raw) {

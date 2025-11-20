@@ -12,7 +12,7 @@ public record JourneyStepResponse(
         String resources,
         List<String> platforms,
         String estimatedTime,
-        int progress,
+        boolean progress,
         String status,
         LocalDateTime updatedAt) {
 }
