@@ -13,6 +13,7 @@ import com.softcode.nextstep.domain.journey.Journey;
 import com.softcode.nextstep.domain.journey.JourneyStatus;
 import com.softcode.nextstep.domain.resume.ResumeAnalysis;
 import com.softcode.nextstep.domain.user.User;
+import com.softcode.nextstep.exception.BadRequestException;
 import com.softcode.nextstep.repository.JourneyRepository;
 import com.softcode.nextstep.repository.ResumeAnalysisRepository;
 import com.softcode.nextstep.security.AuthenticatedUserContext;
@@ -37,28 +38,23 @@ public class DashboardService {
     public DashboardResponse getDashboard() {
         User user = authenticatedUserContext.getCurrentUser();
         Optional<Journey> journeyOpt = journeyRepository.findTopByUserAndStatusOrderByCreatedAtDesc(user, JourneyStatus.ACTIVE);
-        Optional<ResumeAnalysis> analysisOpt = resumeAnalysisRepository.findTopByUserOrderByAnalyzedAtDesc(user);
+        ResumeAnalysis analysis = resumeAnalysisRepository
+                .findTopByUserOrderByAnalyzedAtDesc(user)
+                .orElseThrow(() -> new BadRequestException("error.dashboard.resume_required"));
         DashboardUserDto userDto = new DashboardUserDto(
                 Optional.ofNullable(user.getName()).orElse("Novo talento"),
                 user.getCurrentJob(),
                 journeyOpt.map(Journey::getDesiredJob).orElse(null));
         DashboardNextStepDto nextStep = journeyOpt.map(this::toNextStep).orElse(null);
-        List<SkillDto> skills = analysisOpt
-                .map(analysis -> readJsonOrEmpty(analysis.getSkillsJson(), new TypeReference<List<SkillDto>>() {}))
-                .orElse(List.of(
-                        new SkillDto("Java", "Avancado", 82),
-                        new SkillDto("Spring", "Intermediario", 70),
-                        new SkillDto("SQL", "Intermediario", 65)));
+        List<SkillDto> skills =
+                readJsonOrEmpty(analysis.getSkillsJson(), new TypeReference<List<SkillDto>>() {});
         List<DashboardTrendDto> trends = List.of(
                 new DashboardTrendDto("IA Generativa", "bot"),
                 new DashboardTrendDto("Web3", "zap"),
                 new DashboardTrendDto("DevOps", "settings"),
                 new DashboardTrendDto("Cloud Native", "cloud"));
-        List<SuggestedPathDto> suggestedPaths = analysisOpt
-                .map(analysis ->
-                        readJsonOrEmpty(analysis.getSuggestedCareersJson(), new TypeReference<List<CareerSuggestionDto>>() {}))
-                .orElse(List.of(
-                        new CareerSuggestionDto("Full Stack Developer", "92%", "Alta aderencia ao perfil atual")))
+        List<SuggestedPathDto> suggestedPaths = readJsonOrEmpty(
+                        analysis.getSuggestedCareersJson(), new TypeReference<List<CareerSuggestionDto>>() {})
                 .stream()
                 .map(item -> new SuggestedPathDto(item.title(), item.match()))
                 .toList();
