@@ -1,19 +1,6 @@
-# NextStep
-> Plataforma backend para requalificação profissional que conecta a autenticação do Firebase, análises de currículo via IA Gemini e geração de jornadas personalizadas para pessoas em transição de carreira.
+# 📖 Sobre o Projeto
 
-# Descrição Geral
-
-
-## 🌍 Global Solution 2025 - O Futuro do Trabalho
-
-**NextStep** foi desenvolvido para o desafio **Global Solution 2025 da FIAP**, tema: **"Repensando Hoje as Profissões do Amanhã"**.
-
-### 🎯 Alinhamento com o Desafio
-
-> *"Propor soluções que usem inovação e tecnologia para melhorar a vida das pessoas no trabalho, preparar empresas para os novos tempos e criar oportunidades mais justas, inclusivas e sustentáveis."*  
-> — **Global Solution FIAP 2025**
-
-**NextStep é a Sugestão #1 da FIAP:** *Plataformas de Upskilling e Reskilling Baseadas em IA* ✅
+**NextStep** é uma plataforma inovadora que utiliza **IA (Google Gemini)** para democratizar a requalificação profissional. O sistema analisa currículos, identifica lacunas de conhecimento e gera **jornadas personalizadas** com recursos curados de plataformas como Coursera, Udemy, YouTube e também graduações, caso necessário.
 
 ### 📊 Contexto e Dados de Mercado
 
@@ -40,10 +27,6 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 | **⚖️ ODS 10** | Redução das Desigualdades | Plataforma gratuita, inclusiva e acessível |
 
 ---
-
-## 📖 Sobre o Projeto
-
-**NextStep** é uma plataforma inovadora que utiliza **IA (Google Gemini)** para democratizar a requalificação profissional. O sistema analisa currículos, identifica lacunas de conhecimento e gera **jornadas personalizadas** com recursos curados de plataformas como Coursera, Udemy, YouTube e outras.
 
 ### 🔥 Por que NextStep?
 
@@ -80,8 +63,8 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 ---
 
 
-## Arquitetura & Tecnologias
-### Visão em camadas
+# 🏦Arquitetura & Tecnologias
+### 📚Visão em camadas
 - `api/controller`: REST Controllers expõem endpoints focados em autenticação, dashboard, jornada, profissão, perfil, chat e currículo.
 - `api/dto`: records Java que tipam todas as requisições e respostas, concentrando regras de validação (`jakarta.validation`).
 - `service`: regras de negócio. Destaques: `GeminiService` (integração IA + rate limit), `JourneyService`, `ResumeService`, `ProfileService`, `ChatService`, etc.
@@ -90,35 +73,32 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 - `config`: configurações de cache (Caffeine), internacionalização, RabbitMQ, Gemini Client e MessageSource.
 - `messaging`: `NotificationProducer` publica eventos no RabbitMQ, `NotificationListener` registra consumo assíncrono.
 
-### Principais tecnologias
+### 💻Principais tecnologias
 - **Linguagem/Runtime**: Java 17, Maven Wrapper.
 - **Framework**: Spring Boot (Web, Security, Validation, Data JPA, Cache, Actuator), Lombok.
-- **Banco**: Azure SQL Database / SQL Server (driver `mssql-jdbc`), com dependência H2 apenas para smoke tests locais.
+- **Banco**: Azure SQL Database / SQL Server (driver `mssql-jdbc`).
 - **IA**: SDK oficial `google-genai` (Gemini 2.5 Flash) + Apache Tika para extrair texto de currículos.
-- **Mensageria**: RabbitMQ (AMQP), com conversores Jackson.
-- **Outros**: Micrometer Tracing, Spring REST Docs (configurado no `pom`), Testcontainers (RabbitMQ + SQL Server), Caffeine Cache, internacionalização (`messages*.properties`).
-- **Documentação auxiliar**: `API-SPEC.md` detalha fluxos de autenticação e endpoints.
+- **Outros**: Micrometer Tracing, Spring REST Docs (configurado no `pom`), Testcontainers (SQL Server), Caffeine Cache, internacionalização (`messages*.properties`).
 
-### Fluxos adicionais
+### 🔛Fluxos adicionais
 - **Autenticação**: front-end obtém token Firebase (qualquer projeto), envia como `Authorization: Bearer {jwt}`. O backend decodifica o payload para localizar ou criar o usuário.
 - **Rate limiting**: 100 chamadas/min por usuário autenticado; 15 execuções/min para interações com Gemini.
 - **Cache**: `DashboardService#getDashboard` usa Caffeine por 5 minutos por usuário.
-- **Mensageria**: geração de jornada e análise de currículo disparam eventos (`journey.generated`, `resume.analysis.completed`).
 
-## Funcionalidades Principais
+## 💻Funcionalidades Principais
 - Cadastro/atualização de perfil com dados trazidos do Firebase (`AuthController`, `ProfileController`).
 - Upload e análise de currículos (PDF/DOC/DOCX), com extração de skills, lacunas e carreiras sugeridas usando Gemini.
 - Geração e gestão de jornadas personalizadas com passos ordenados, insights e acompanhamento de progresso.
 - Dashboard com próximos passos, skills e tendências consolidadas.
 - Chat mentorado por IA para tirar dúvidas rápidas (`ChatService`).
-- Sugestão de profissões alvo a partir de um catálogo local (mock).
+- Sugestão de profissões alvo a partir da análise do currículo do usuário.
 - Histórico de jornadas concluídas, exclusão de conta e limpeza de dados associados.
 
-## API
-- **Base URL local**: `http://localhost:8080`
+## 💻API
+- **Base URL nuvem**: `nextstep-2tdsb.azurewebsites.net`
 - **Autenticação**: todos os endpoints `/api/**` (exceto `/api/auth/**` e `/api/public/**`) exigem header `Authorization: Bearer {firebase-jwt}`.
 
-### Autenticação & Perfil
+### 👤Autenticação & Perfil
 | Método | Rota | Descrição | Corpo (req) | Resposta | Status |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/auth/verify` | Decodifica o JWT, cria/busca usuário e indica se há jornada ativa. | — | `AuthVerifyResponse` | 200 |
@@ -127,14 +107,14 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 | PUT | `/api/profile` | Atualiza nome, email e cargo. | `ProfileUpdateRequest` | `ProfileResponse` | 200 |
 | DELETE | `/api/profile` | Remove usuário e dados agregados. | — | `DeleteProfileResponse` | 200 |
 
-### Currículo & Dashboard
+### 📄Currículo & Dashboard
 | Método | Rota | Descrição | Corpo | Resposta | Status |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/resume/upload` | Upload multipart (`file`) até 5 MB (PDF/DOC/DOCX) para análise via Gemini. | `MultipartFile` | `ResumeAnalysisResponse` | 200 |
 | GET | `/api/resume/analysis/{userId}` | Retorna a última análise do usuário (valida proprietário). | — | `ResumeAnalysisResponse` | 200/403 |
 | GET | `/api/dashboard` | Consolida próximos passos, skills e tendências. Cacheado por usuário. | — | `DashboardResponse` | 200 |
 
-### Jornadas
+### 🛣️Jornadas
 | Método | Rota | Descrição | Corpo | Resposta | Status |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/journeys/generate` | Cria nova jornada usando Gemini a partir do cargo desejado e da ultima analise de curriculo. | `JourneyGenerationRequest` | `JourneyResponse` | 201 |
@@ -142,18 +122,18 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 | PATCH | `/api/journeys/steps/{stepId}/progress` | Marca um passo como concluído (`progress=true`) ou não (`progress=false`). | `JourneyProgressUpdateRequest` | `JourneyStepResponse` | 200 |
 | GET | `/api/journeys/history?page=&size=` | Paginado das jornadas concluídas. | — | `JourneyHistoryResponse` | 200 |
 
-### Chat & Profissões
+### 🗣️Chat & Profissões
 | Método | Rota | Descrição | Corpo | Resposta | Status |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/chat/send` | Salva mensagem do usuário, chama Gemini (prompt mentor) e retorna resposta. | `ChatMessageRequest` | `ChatMessageResponse` | 200 |
 | GET | `/api/chat/history?conversationId=&page=&size=` | Histórico paginado da conversa ordenado cronologicamente. | — | `ChatHistoryResponse` | 200 |
 | GET | `/api/professions/suggested?search=` | Lista catálogo local de profissões filtrado por texto. | — | `ProfessionSuggestionResponse` | 200 |
 
-### Erros comuns
+### ⚠️Erros comuns
 - respostas seguem `ErrorResponse` (`error`, `message`, `details`), internacionalizada via `messages*.properties`.
 - códigos relevantes: `401 UNAUTHORIZED` (token ausente/invalidado), `429 TOO MANY REQUESTS` (rate limit), `404 NOT_FOUND` (jornadas/análises inexistentes), `400 BAD_REQUEST` (validações).
 
-## Modelagem de Dados
+## 💻Modelagem de Dados
 - **User** (`users`): chave primária UUID, `firebaseUid`, email único, nome, cargo atual, status (`ACTIVE/DELETED`).
 - **ResumeAnalysis** (`resume_analysis`): relacionamento N:1 com `User`; guarda JSON de skills, lacunas e carreiras sugeridas, nível de experiência e timestamp da análise.
 - **Journey** (`journeys`): pertence a um usuário, status (`ACTIVE/COMPLETED/ARCHIVED`), progresso geral, cargo desejado, insights (JSON) e lista de **JourneyStep**.
@@ -161,77 +141,132 @@ NextStep contribui diretamente com 4 ODS destacados pela Global Solution:
 - **ChatMessage** (`chat_messages`): histórico do chat mentorado (usuário, conversa, papel `USER/AI`, timestamp).
 - A persistência é realizada via Spring Data JPA; `BaseEntity` adiciona `createdAt/updatedAt` automáticos.
 
-## Pré-requisitos
-- Java 17 (JDK).
-- Maven 3.9+ (ou `./mvnw`).
-- Azure SQL Database / SQL Server acessível (ajuste `spring.datasource.*`). Para desenvolvimento local pode-se habilitar Testcontainers SQL Server ou apontar para H2.
-- RabbitMQ rodando localmente (porta 5672) para envio/consumo de notificações.
-- Conta no Google AI Studio para uma API key Gemini (`gemini.api-key`).
-- Projeto Firebase para gerar tokens JWT (pode usar o projeto demonstrativo configurado nos HTMLs).
+## ⚠️Pré-requisitos
+- É necessário estar logado na Azure para o funcionamento dos scripts
 
-## Como Rodar o Projeto Localmente
+# 🌐Como Rodar o Projeto 
+
+## 1. Clonar o repositório
 ```bash
-# 1. Clonar o repositório
-git clone <url-do-repo>
-cd nextstep
-
-# 2. Configurar credenciais sensíveis (recomenda-se variáveis ou application-local.properties)
-cp src/main/resources/application.properties .env # ajuste Azure SQL, RabbitMQ, Gemini etc.
-
-# Alternativamente exporte (PowerShell):
-$env:SPRING_DATASOURCE_URL="jdbc:sqlserver://host:1433;database=db;user=user@host;password=Senha!;encrypt=true;trustServerCertificate=false;loginTimeout=30;"
-$env:GEMINI_API_KEY="sua-chave"
-
-# 3. Instalar dependências e compilar
-./mvnw clean install
-
-# 4. Executar a aplicação
-./mvnw spring-boot:run
-
-# 5. (Opcional) abrir páginas de teste
-# http://localhost:8080/firebase-test.html  -> login Firebase + chamada /api/auth/verify
-# http://localhost:8080/gemini-tester.html -> upload currículo, jornada, chat
+git clone https://github.com/LuigiBerzaghi/NextStep-Devops.git
+cd NextStep-Devops/scripts
 ```
-- Para usar outro `application.properties`, crie um perfil (`application-local.properties`) e rode com `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`.
-- Certifique-se de que RabbitMQ esteja disponível ou adapte `spring.rabbitmq.*`.
 
-## Execução de Testes
-(- Testes automatizados atuais são básicos (`NextstepApplicationTests` apenas valida o contexto).
-- Rodar: `./mvnw test`
-- Há dependências de Testcontainers (SQL Server + RabbitMQ); habilite definindo `spring.testcontainers.enabled=true` caso queira usar os ambientes dockerizados para testes de integração.)
+## 2. Provisionar recursos
 
-## Ambientes e Deploy
-(Fazer devops primeiro)
+Agora, execute o script PowerShell para criar o **Resource Group** com os componentes da aplicação.
 
-## Estrutura de Pastas
+Caso queira personalizar apenas usuário e senha:
+
+```powershell
+.\script-infra.ps1 `
+  -AdminUser <usuario-admin> `
+  -AdminPass <senha-admin>
+```
+
+Caso queira personalizar demais parâmetros utilizados pelo script:
+
+```powershell
+.\script-infra.ps1 `
+  -Location <localizacao> `
+  -ResourceGroup <nome-do-resource-group> `
+  -SqlServerName <nome-unico-do-sql-server> `
+  -DbName <nome-do-database> `
+  -AdminUser <usuario-admin> `
+  -AdminPass <senha-admin> `
+  -Plan <nome-do-app-service-plan>
+
+```
+
+Caso queira usar valores padrões:
+
+```powershell
+.\script-infra.ps1
+```
+
+Valores padrão definidos pelo script:
+-  Location = "brazilsouth"
+-  ResourceGroup = "rg-nextstep"
+-  SqlServerName = "sqlnextstep"         
+-  DbName = "dbnextstep"              
+-  AdminUser = "adminuser"
+-  AdminPass = "SenhaSuperSegura123!"
+-  Plan = "planNextstep"
+
+---
+
+A aplicação ficará disponível na url `nextstep-2tdsb.azurewebsites.net` em alguns minutos.
+
+
+
+## 🌐Execução de Testes
+Uma coleção Postman está disponível no link : [Postman](https://bold-zodiac-707210.postman.co/workspace/Personal-Workspace~4701d561-f092-46f6-a63c-0560d2fd1507/collection/39387306-13e47cc2-1d25-4430-9daf-713a72109f6c?action=share&creator=39387306)
+
+Na coleção, os endpoints estão separados por classes, para os testes é necessário que o token seja um token firebase de um usuário válido.
+
+
+## 💾Acessar o Banco Azure (opicional)
+
+O projeto usa o banco de dados em nuvem Azure.
+
+No app Azure Data Studio insira as seguintes credenciais:
+
+- Server: `sqlnextstep`
+- Authentication Type: `SQL Login`
+- Username: `adminuser` (ou o username personalizado)
+- Password: `SenhaSuperSegura123!` (ou a password personalizada)
+
+## 🏗️Estrutura de Pastas
 ```
 nextstep/
-├── pom.xml
-├── src
-│   ├── main
-│   │   ├── java/com/softcode/nextstep
-│   │   │   ├── api/{controller,dto}
-│   │   │   ├── config/
-│   │   │   ├── domain/
-│   │   │   ├── exception/
-│   │   │   ├── messaging/
-│   │   │   ├── repository/
-│   │   │   ├── security/
-│   │   │   └── service/ (inclui subpacote `ai`)
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       ├── messages*.properties
-│   │       └── static/{firebase-test.html, gemini-tester.html, signup.html}
-│   └── test/ (Smoke tests e configs para Testcontainers)
-└── mvnw / mvnw.cmd / .mvn
+|- pom.xml
+|- mvnw / mvnw.cmd / .mvn/wrapper
+|- azure/
+|  \- pipelines/ci-cd.yml
+|- azure-pipeline.yml
+|- dockerfiles/
+|  \- Dockerfile
+|- scripts/
+|  |- script-infra.ps1
+|  \- script-bd.sql
+|- src/
+|  |- main/
+|  |  |- java/com/softcode/nextstep/
+|  |  |  |- api/{controller,dto}
+|  |  |  |- config/
+|  |  |  |- domain/
+|  |  |  |- exception/
+|  |  |  |- messaging/
+|  |  |  |- repository/
+|  |  |  |- security/
+|  |  |  \- service/ (inclui subpacote ai)
+|  |  \- resources/
+|  |     |- application.properties
+|  |     |- messages*.properties
+|  |     |- static/{firebase-test.html, gemini-tester.html, signup.html}
+|  |     \- templates/
+|  \- test/
+|     \- java/com/softcode/nextstep/
+|        |- config/
+|        |- NextstepApplicationTests.java
+|        \- TestNextstepApplication.java
+|- target/ (artefatos de build)
+\- README.md
 ```
-- `static/`: formulários rápidos para testar login Firebase, upload de currículo e chat Gemini.
 
-## Boas Práticas & Padrões Utilizados
-- Separação clara de camadas (Controller → Service → Repository) com DTOs imutáveis (`record`).
-- Validação declarativa (`jakarta.validation`) em requests.
-- Manipulação uniforme de erros via `GlobalExceptionHandler` + `ErrorResponse`.
-- Segurança centralizada em filtro customizado (`FirebaseAuthenticationFilter`) + contexto de usuário.
-- Integrações externas encapsuladas (`GeminiService`, `ResumeTextExtractor`, `NotificationProducer`).
-- Uso de cache local (Caffeine) e internacionalização (`messages.properties`) para mensagens de erro.
-- Eventos assíncronos publicados via RabbitMQ para desacoplar notificações do fluxo síncrono.
+## ⏹️ Ao parar a execução
+Desfaz o grupo de recursos padrão:
+```powershell
+az group delete --name rg-nextstep --yes --no-wait
+```
+Caso tenha personalizado o nome do grupo de recursos:
+```powershell
+az group delete --name <nome-rg> --yes --no-wait
+```
+
+## 👥 Equipe
+
+- RM555516 - Luigi Berzaghi  
+- RM559093 - Guilherme Pelissari   
+- RM558445 - Cauã dos Santos   
+

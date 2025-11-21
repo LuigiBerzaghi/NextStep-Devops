@@ -1,7 +1,6 @@
 package com.softcode.nextstep.security;
 
 import com.softcode.nextstep.domain.user.User;
-import com.softcode.nextstep.security.TokenService;
 import com.softcode.nextstep.security.TokenService.DecodedToken;
 import com.softcode.nextstep.service.RateLimitService;
 import com.softcode.nextstep.service.UserService;
