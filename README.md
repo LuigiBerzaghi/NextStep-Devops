@@ -1,6 +1,6 @@
 # 📖 Sobre o Projeto
 
-**NextStep** é uma plataforma inovadora que utiliza **IA (Google Gemini)** para democratizar a requalificação profissional. O sistema analisa currículos, identifica lacunas de conhecimento e gera **jornadas personalizadas** com recursos curados de plataformas como Coursera, Udemy, YouTube e também graduações, caso necessário.
+ **NextStep** é uma plataforma inovadora que utiliza **IA (Google Gemini)** para democratizar a requalificação profissional. O sistema analisa currículos, identifica lacunas de conhecimento e gera **jornadas personalizadas** com recursos curados de plataformas como Coursera, Udemy, YouTube e também graduações, caso necessário.
 
 ### 📊 Contexto e Dados de Mercado
 
