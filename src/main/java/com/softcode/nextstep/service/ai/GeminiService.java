@@ -47,6 +47,8 @@ public class GeminiService {
             Nao inclua texto em Markdown ou comentarios fora do JSON.
             Para as plataformas, pode considerar também cursos de graduação em instituições de renome, caso necessário. Cite apenas a abreviação da instituição (ex: "Universidade de São Paulo" : "USP").
             Caso haja a a necessidade de sugerir algum curso de graduação, coloque ele na primeira etapa do plano.
+            Na parte dos "gaps", liste apenas lacunas extremamente objetivas e claras, sem rodeios e exemplos.
+            Na parte de carreiras sugeridas, sugira no mínimo 10 cargos relevantes, com percentuais de match realistas e motivos objetivos com base no currículo do usuário.
             """;
     private static final String JOURNEY_PROMPT = """
             Voce e um mentor de carreira. A partir dos dados fornecidos (skills atuais, lacunas e cargo desejado),
