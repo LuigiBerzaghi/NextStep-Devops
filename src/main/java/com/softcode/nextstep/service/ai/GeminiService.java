@@ -60,7 +60,7 @@ public class GeminiService {
                  {"type":"skill|trend|certification","icon":"bulb-outline","text":"Insight objetivo"}
               ]
             }
-            Use apenas nomes validos da biblioteca Ionicons para o campo icon (ex: bulb-outline, trending-up-outline, trophy-outline, target-outline, sparkles-outline).
+            Use apenas nomes validos da biblioteca Ionicons para o campo icon (ex: bulb-outline, trending-up-outline, trophy-outline, locate-outline, sparkles-outline).
             Nao escreva nada fora desse JSON.
             """;
     private static final String CHAT_PROMPT = """
@@ -77,14 +77,14 @@ public class GeminiService {
             "bulb-outline",
             "trending-up-outline",
             "trophy-outline",
-            "target-outline",
+            "locate-outline",
             "sparkles-outline",
             "flash-outline",
             "book-outline",
             "layers-outline",
             "globe-outline",
             "compass-outline",
-            "brain-outline",
+            "school-outline",
             "flag-outline",
             "star-outline",
             "shield-checkmark-outline",
