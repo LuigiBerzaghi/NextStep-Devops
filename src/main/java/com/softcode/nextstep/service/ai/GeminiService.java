@@ -47,8 +47,6 @@ public class GeminiService {
             Nao inclua texto em Markdown ou comentarios fora do JSON.
             Para as plataformas, pode considerar também cursos de graduação em instituições de renome, caso necessário. Cite apenas a abreviação da instituição (ex: "Universidade de São Paulo" : "USP").
             Caso haja a a necessidade de sugerir algum curso de graduação, coloque ele na primeira etapa do plano.
-            Na parte dos "gaps", liste apenas lacunas extremamente objetivas e claras, sem rodeios e exemplos.
-            Na parte de carreiras sugeridas, sugira no mínimo 10 cargos relevantes, com percentuais de match realistas e motivos objetivos com base no currículo do usuário. 
             """;
     private static final String JOURNEY_PROMPT = """
             Voce e um mentor de carreira. A partir dos dados fornecidos (skills atuais, lacunas e cargo desejado),
@@ -59,10 +57,11 @@ public class GeminiService {
                  {"order":1,"title":"","objective":"","resources":"","platforms":["Coursera"],"estimatedTime":""}
               ],
               "insights": [
-                 {"type":"skill|trend|certification","icon":"bulb","text":"Insight objetivo"}
+                 {"type":"skill|trend|certification","icon":"bulb-outline","text":"Insight objetivo"}
               ]
             }
-            Use APENAS nomes validos da biblioteca ionicons do expo-vetor-icons (Expo 54 e ionicons V7) para o campo icon (ex: bulb, stats-chart, analytics, sparkles, trophy).
+            Use apenas nomes validos da biblioteca Ionicons para o campo icon (ex: bulb-outline, trending-up-outline, trophy-outline, target-outline, sparkles-outline).
+            Nao escreva nada fora desse JSON.
             """;
     private static final String CHAT_PROMPT = """
             Voce e o Mentor AI da NextStep, um especialista em carreira. Sua resposta DEVE seguir TODAS as regras abaixo:
@@ -74,24 +73,23 @@ public class GeminiService {
         O objetivo e uma resposta limpa, curta e facil de ler.
             """;
 
-    private static final Set<String> LUCIDE_ICONS = Set.of(
-        "bulb",                
-        "trending-up",         
-        "trophy",             
-        "target",              
-        "sparkles",            
-        "flash",               
-        "book",                
-        "layers",              
-        "globe",               
-        "compass",             
-        "planet",              
-        "flag",                
-        "star",               
-        "shield-checkmark",   
-        "rocket",              
-        "pulse"                
-    );
+    private static final Set<String> IONICONS = Set.of(
+            "bulb-outline",
+            "trending-up-outline",
+            "trophy-outline",
+            "target-outline",
+            "sparkles-outline",
+            "flash-outline",
+            "book-outline",
+            "layers-outline",
+            "globe-outline",
+            "compass-outline",
+            "brain-outline",
+            "flag-outline",
+            "star-outline",
+            "shield-checkmark-outline",
+            "rocket-outline",
+            "pulse-outline");
 
     private final RateLimitService rateLimitService;
     private final GeminiProperties geminiProperties;
@@ -305,9 +303,9 @@ public class GeminiService {
                         List.of("Notion", "Miro"),
                         "3 semanas"));
         List<InsightDto> insights = List.of(
-                new InsightDto("skill", "lightbulb", "Priorize fundamentos de arquitetura e mensuracao de impacto."),
-                new InsightDto("trend", "trendingUp", "Empresas valorizam lideres com fluencia em cloud e dados."),
-                new InsightDto("certification", "award", "Uma certificacao Azure ou AWS diferencia seu perfil."));
+                new InsightDto("skill", "bulb-outline", "Priorize fundamentos de arquitetura e mensuracao de impacto."),
+                new InsightDto("trend", "trending-up-outline", "Empresas valorizam lideres com fluencia em cloud e dados."),
+                new InsightDto("certification", "trophy-outline", "Uma certificacao Azure ou AWS diferencia seu perfil."));
         return new JourneyPlan("8-12 semanas", steps, insights);
     }
 
@@ -345,29 +343,21 @@ public class GeminiService {
 
     private String sanitizeIcon(String icon) {
         if (!StringUtils.hasText(icon)) {
-            return "sparkles";
+            return "sparkles-outline";
         }
-        String normalized = toCamelCase(icon);
-        if (!LUCIDE_ICONS.contains(normalized)) {
-            return "sparkles";
+        String normalized = toKebabCase(icon);
+        if (!IONICONS.contains(normalized)) {
+            return "sparkles-outline";
         }
         return normalized;
     }
 
-    private String toCamelCase(String value) {
-        String cleaned = value.replaceAll("[^a-zA-Z0-9\\s]", " ").trim();
+    private String toKebabCase(String value) {
+        String cleaned = value.replaceAll("[^a-zA-Z0-9\\s-]", " ").trim().toLowerCase();
         if (!StringUtils.hasText(cleaned)) {
-            return "sparkles";
+            return "sparkles-outline";
         }
-        String[] parts = cleaned.split("\\s+");
-        StringBuilder builder = new StringBuilder(parts[0].substring(0, 1).toLowerCase(Locale.ROOT)
-                + parts[0].substring(1));
-        for (int i = 1; i < parts.length; i++) {
-            String part = parts[i];
-            builder.append(part.substring(0, 1).toUpperCase(Locale.ROOT))
-                    .append(part.substring(1));
-        }
-        return builder.toString();
+        return cleaned.replaceAll("\\s+", "-");
     }
 
     private <T> T parseResponse(String content, Class<T> type) {
