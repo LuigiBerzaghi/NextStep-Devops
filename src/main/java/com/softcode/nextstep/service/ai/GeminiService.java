@@ -59,12 +59,10 @@ public class GeminiService {
                  {"order":1,"title":"","objective":"","resources":"","platforms":["Coursera"],"estimatedTime":""}
               ],
               "insights": [
-                 {"type":"skill|trend|certification","icon":"lightbulb","text":"Insight objetivo"}
+                 {"type":"skill|trend|certification","icon":"bulb","text":"Insight objetivo"}
               ]
             }
-            Use apenas nomes validos da biblioteca ionicons do expo-vetor-icons para o campo icon(Exemplos: home-outline, add-circle-outline, chevron-forward, finger-print, document-outline, camera-outline, cart-outline, chatbubble-outline, star-outline, alert-circle-outline
-).
-            Nao escreva nada fora desse JSON.
+            Use APENAS nomes validos da biblioteca ionicons do expo-vetor-icons (Expo 54 e ionicons V7) para o campo icon (ex: bulb, stats-chart, analytics, sparkles, trophy).
             """;
     private static final String CHAT_PROMPT = """
             Voce e o Mentor AI da NextStep, um especialista em carreira. Sua resposta DEVE seguir TODAS as regras abaixo:
@@ -77,22 +75,23 @@ public class GeminiService {
             """;
 
     private static final Set<String> LUCIDE_ICONS = Set.of(
-            "lightbulb",
-            "trendingUp",
-            "award",
-            "target",
-            "sparkles",
-            "zap",
-            "bookOpen",
-            "layers",
-            "globe2",
-            "compass",
-            "brain",
-            "flag",
-            "star",
-            "shieldCheck",
-            "rocket",
-            "activity");
+        "bulb",                
+        "trending-up",         
+        "trophy",             
+        "target",              
+        "sparkles",            
+        "flash",               
+        "book",                
+        "layers",              
+        "globe",               
+        "compass",             
+        "planet",              
+        "flag",                
+        "star",               
+        "shield-checkmark",   
+        "rocket",              
+        "pulse"                
+    );
 
     private final RateLimitService rateLimitService;
     private final GeminiProperties geminiProperties;
