@@ -58,13 +58,12 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    @Transactional
+@Transactional
     public void deleteUser(User user) {
-        resumeAnalysisRepository.deleteByUser(user);
+        chatMessageRepository.deleteByUser(user);
         List<Journey> journeys = journeyRepository.findByUser(user);
         journeyRepository.deleteAll(journeys);
-        chatMessageRepository.deleteByUser(user);
-        user.setStatus(UserStatus.DELETED);
+        resumeAnalysisRepository.deleteByUser(user);
         userRepository.delete(user);
     }
 

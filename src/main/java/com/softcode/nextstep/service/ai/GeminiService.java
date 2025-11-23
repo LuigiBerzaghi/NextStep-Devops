@@ -62,7 +62,8 @@ public class GeminiService {
                  {"type":"skill|trend|certification","icon":"lightbulb","text":"Insight objetivo"}
               ]
             }
-            Use apenas nomes validos da biblioteca Lucide Icons para o campo icon (ex: lightbulb, trending-up, award, target, sparkles).
+            Use apenas nomes validos da biblioteca ionicons do expo-vetor-icons para o campo icon(Exemplos: home-outline, add-circle-outline, chevron-forward, finger-print, document-outline, camera-outline, cart-outline, chatbubble-outline, star-outline, alert-circle-outline
+).
             Nao escreva nada fora desse JSON.
             """;
     private static final String CHAT_PROMPT = """
